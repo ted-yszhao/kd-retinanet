@@ -1,62 +1,35 @@
 from __future__ import annotations
 
-from collections import defaultdict
-
 import torch
 
 
-def _box_iou(boxes1: torch.Tensor, boxes2: torch.Tensor) -> torch.Tensor:
-    if boxes1.numel() == 0 or boxes2.numel() == 0:
-        return torch.zeros((boxes1.shape[0], boxes2.shape[0]), dtype=torch.float32)
-
-    area1 = (boxes1[:, 2] - boxes1[:, 0]).clamp(min=0) * (boxes1[:, 3] - boxes1[:, 1]).clamp(min=0)
-    area2 = (boxes2[:, 2] - boxes2[:, 0]).clamp(min=0) * (boxes2[:, 3] - boxes2[:, 1]).clamp(min=0)
-
-    top_left = torch.maximum(boxes1[:, None, :2], boxes2[:, :2])
-    bottom_right = torch.minimum(boxes1[:, None, 2:], boxes2[:, 2:])
-    wh = (bottom_right - top_left).clamp(min=0)
-    intersection = wh[..., 0] * wh[..., 1]
-    union = area1[:, None] + area2 - intersection
-
-    return intersection / union.clamp(min=1e-6)
+def _unwrap_dataset(dataset):
+    current = dataset
+    while hasattr(current, "dataset"):
+        current = current.dataset
+    return current
 
 
-def _compute_ap(recalls: torch.Tensor, precisions: torch.Tensor) -> float:
-    recalls = torch.cat([torch.tensor([0.0]), recalls, torch.tensor([1.0])])
-    precisions = torch.cat([torch.tensor([0.0]), precisions, torch.tensor([0.0])])
-
-    for index in range(precisions.numel() - 1, 0, -1):
-        precisions[index - 1] = torch.maximum(precisions[index - 1], precisions[index])
-
-    recall_levels = torch.linspace(0.0, 1.0, steps=101)
-    interpolated = []
-    for level in recall_levels:
-        valid = precisions[recalls >= level]
-        interpolated.append(valid.max() if valid.numel() else torch.tensor(0.0))
-
-    return float(torch.stack(interpolated).mean())
+def _get_coco_api_from_loader(loader):
+    dataset = _unwrap_dataset(loader.dataset)
+    coco = getattr(dataset, "coco", None)
+    if coco is None:
+        raise ValueError("The evaluation loader dataset must expose a pycocotools COCO API via dataset.coco.")
+    return coco
 
 
-def _prepare_output_dict(output: dict) -> dict:
+def _prepare_output_dict(output: dict, image_id: int) -> dict:
     return {
+        "image_id": image_id,
         "boxes": output.get("boxes", torch.zeros((0, 4), dtype=torch.float32)).detach().cpu().to(torch.float32),
         "scores": output.get("scores", torch.zeros((0,), dtype=torch.float32)).detach().cpu().to(torch.float32),
         "labels": output.get("labels", torch.zeros((0,), dtype=torch.int64)).detach().cpu().to(torch.int64),
     }
 
 
-def _prepare_target_dict(target: dict) -> dict:
-    return {
-        "boxes": target.get("boxes", torch.zeros((0, 4), dtype=torch.float32)).detach().cpu().to(torch.float32),
-        "labels": target.get("labels", torch.zeros((0,), dtype=torch.int64)).detach().cpu().to(torch.int64),
-        "image_id": int(target["image_id"].flatten()[0].item()),
-    }
-
-
-def _collect_predictions(model, loader, device, branch: str = "student") -> tuple[list[dict], list[dict]]:
+def _collect_predictions(model, loader, device, branch: str = "student") -> list[dict]:
     model_device = torch.device(device)
     outputs = []
-    targets = []
 
     was_training = model.training
     model.eval()
@@ -70,118 +43,76 @@ def _collect_predictions(model, loader, device, branch: str = "student") -> tupl
             else:
                 batch_outputs = model(images)
 
-            outputs.extend(_prepare_output_dict(output) for output in batch_outputs)
-            targets.extend(_prepare_target_dict(target) for target in batch_targets)
+            outputs.extend(
+                _prepare_output_dict(output, int(target["image_id"].flatten()[0].item()))
+                for output, target in zip(batch_outputs, batch_targets)
+            )
 
     if was_training:
         model.train()
 
-    return outputs, targets
+    return outputs
 
 
-def _evaluate_at_iou(predictions: list[dict], targets: list[dict], iou_threshold: float) -> float:
-    classes = sorted({
-        int(label.item())
-        for target in targets
-        for label in target["labels"]
-    } | {
-        int(label.item())
-        for prediction in predictions
-        for label in prediction["labels"]
-    })
+def _prediction_to_coco_results(predictions: list[dict]) -> list[dict]:
+    results = []
+    for prediction in predictions:
+        image_id = prediction["image_id"]
+        boxes = prediction["boxes"]
+        scores = prediction["scores"]
+        labels = prediction["labels"]
 
-    if not classes:
-        return 0.0
-
-    target_lookup = {}
-    gt_count_by_class = defaultdict(int)
-    for target in targets:
-        image_id = target["image_id"]
-        target_lookup[image_id] = target
-        for class_id in target["labels"].tolist():
-            gt_count_by_class[int(class_id)] += 1
-
-    ap_values = []
-    for class_id in classes:
-        gt_matches = {}
-        detections = []
-
-        for target in targets:
-            image_id = target["image_id"]
-            mask = target["labels"] == class_id
-            boxes = target["boxes"][mask]
-            gt_matches[image_id] = torch.zeros((boxes.shape[0],), dtype=torch.bool)
-
-        for prediction, target in zip(predictions, targets):
-            image_id = target["image_id"]
-            mask = prediction["labels"] == class_id
-            for box, score in zip(prediction["boxes"][mask], prediction["scores"][mask]):
-                detections.append({
+        for box, score, label in zip(boxes, scores, labels):
+            x1, y1, x2, y2 = box.tolist()
+            results.append(
+                {
                     "image_id": image_id,
-                    "box": box,
+                    "category_id": int(label.item()),
+                    "bbox": [x1, y1, x2 - x1, y2 - y1],
                     "score": float(score.item()),
-                })
-
-        num_gt = gt_count_by_class.get(class_id, 0)
-        if num_gt == 0:
-            continue
-
-        detections.sort(key=lambda detection: detection["score"], reverse=True)
-
-        if not detections:
-            ap_values.append(0.0)
-            continue
-
-        tps = torch.zeros((len(detections),), dtype=torch.float32)
-        fps = torch.zeros((len(detections),), dtype=torch.float32)
-
-        for index, detection in enumerate(detections):
-            image_id = detection["image_id"]
-            target = target_lookup[image_id]
-            mask = target["labels"] == class_id
-            gt_boxes = target["boxes"][mask]
-
-            if gt_boxes.numel() == 0:
-                fps[index] = 1.0
-                continue
-
-            ious = _box_iou(detection["box"].unsqueeze(0), gt_boxes).squeeze(0)
-            best_iou, best_index = ious.max(dim=0)
-
-            if best_iou >= iou_threshold and not gt_matches[image_id][best_index]:
-                tps[index] = 1.0
-                gt_matches[image_id][best_index] = True
-            else:
-                fps[index] = 1.0
-
-        tp_cum = torch.cumsum(tps, dim=0)
-        fp_cum = torch.cumsum(fps, dim=0)
-        recalls = tp_cum / max(num_gt, 1)
-        precisions = tp_cum / (tp_cum + fp_cum).clamp(min=1e-6)
-        ap_values.append(_compute_ap(recalls, precisions))
-
-    return float(sum(ap_values) / len(ap_values)) if ap_values else 0.0
+                }
+            )
+    return results
 
 
 def evaluate_detection_model(model, loader, device="cpu", branch: str = "student") -> dict[str, float]:
     """
-    Evaluate a detector on a detection dataloader and return common AP metrics.
+    Evaluate a detector with pycocotools COCOeval.
 
     For RetinaNetDistiller:
     - branch="student" or "full" evaluates the student detector
     - branch="teacher" evaluates the frozen teacher detector
     """
-    predictions, targets = _collect_predictions(model=model, loader=loader, device=device, branch=branch)
+    from pycocotools.cocoeval import COCOeval
 
-    thresholds = [round(value, 2) for value in torch.arange(0.5, 1.0, 0.05).tolist()]
-    ap_by_threshold = {
-        threshold: _evaluate_at_iou(predictions=predictions, targets=targets, iou_threshold=threshold)
-        for threshold in thresholds
-    }
+    coco_gt = _get_coco_api_from_loader(loader)
+    predictions = _collect_predictions(model=model, loader=loader, device=device, branch=branch)
+    coco_results = _prediction_to_coco_results(predictions)
+
+    if not coco_results:
+        return {
+            "bbox_mAP": 0.0,
+            "bbox_mAP_50": 0.0,
+            "bbox_mAP_75": 0.0,
+            "bbox_mAP_small": 0.0,
+            "bbox_mAP_medium": 0.0,
+            "bbox_mAP_large": 0.0,
+            "num_images": float(len(predictions)),
+        }
+
+    coco_dt = coco_gt.loadRes(coco_results)
+    coco_eval = COCOeval(coco_gt, coco_dt, iouType="bbox")
+    coco_eval.params.imgIds = sorted({prediction["image_id"] for prediction in predictions})
+    coco_eval.evaluate()
+    coco_eval.accumulate()
+    coco_eval.summarize()
 
     return {
-        "map": float(sum(ap_by_threshold.values()) / len(ap_by_threshold)) if ap_by_threshold else 0.0,
-        "map_50": ap_by_threshold.get(0.5, 0.0),
-        "map_75": ap_by_threshold.get(0.75, 0.0),
-        "num_images": float(len(targets)),
+        "bbox_mAP": float(coco_eval.stats[0]),
+        "bbox_mAP_50": float(coco_eval.stats[1]),
+        "bbox_mAP_75": float(coco_eval.stats[2]),
+        "bbox_mAP_small": float(coco_eval.stats[3]),
+        "bbox_mAP_medium": float(coco_eval.stats[4]),
+        "bbox_mAP_large": float(coco_eval.stats[5]),
+        "num_images": float(len(predictions)),
     }

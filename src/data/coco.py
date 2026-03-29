@@ -13,6 +13,7 @@ class CocoDetectionKD(CocoDetection):
 
     def __getitem__(self, idx):
         img, ann = super().__getitem__(idx)
+        image_id = self.ids[idx]
 
         boxes = []
         labels = []
@@ -45,7 +46,7 @@ class CocoDetectionKD(CocoDetection):
         target = {
             "boxes": boxes,
             "labels": labels,
-            "image_id": torch.tensor([idx]),
+            "image_id": torch.tensor([image_id], dtype=torch.int64),
             "area": areas,
             "iscrowd": iscrowd,
         }

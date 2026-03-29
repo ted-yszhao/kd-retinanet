@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 
 import torch
+from pycocotools.coco import COCO
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
@@ -14,15 +15,33 @@ from src.models.distiller import RetinaNetDistiller
 
 
 class ToyDetectionDataset(Dataset):
+    def __init__(self):
+        self.coco = COCO()
+        self.coco.dataset = {
+            "images": [
+                {"id": 100, "width": 32, "height": 32},
+                {"id": 101, "width": 32, "height": 32},
+            ],
+            "annotations": [
+                {"id": 1, "image_id": 100, "category_id": 1, "bbox": [4, 4, 16, 16], "area": 256, "iscrowd": 0},
+                {"id": 2, "image_id": 101, "category_id": 1, "bbox": [4, 4, 16, 16], "area": 256, "iscrowd": 0},
+            ],
+            "categories": [
+                {"id": 1, "name": "object"},
+            ],
+        }
+        self.coco.createIndex()
+
     def __len__(self):
         return 2
 
     def __getitem__(self, idx):
         image = torch.zeros((3, 32, 32), dtype=torch.float32)
+        image_id = 100 + idx
         target = {
             "boxes": torch.tensor([[4.0, 4.0, 20.0, 20.0]], dtype=torch.float32),
             "labels": torch.tensor([1], dtype=torch.int64),
-            "image_id": torch.tensor([idx], dtype=torch.int64),
+            "image_id": torch.tensor([image_id], dtype=torch.int64),
             "area": torch.tensor([256.0], dtype=torch.float32),
             "iscrowd": torch.tensor([0], dtype=torch.int64),
         }
@@ -75,9 +94,9 @@ def main():
     print("student:", student_metrics)
     print("full kd:", kd_metrics)
 
-    assert teacher_metrics["map_50"] > 0.99
-    assert student_metrics["map_50"] > 0.99
-    assert kd_metrics["map_50"] > 0.99
+    assert teacher_metrics["bbox_mAP_50"] > 0.99
+    assert student_metrics["bbox_mAP_50"] > 0.99
+    assert kd_metrics["bbox_mAP_50"] > 0.99
 
 
 if __name__ == "__main__":

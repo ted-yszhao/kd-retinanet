@@ -13,6 +13,12 @@ class DataConfig:
 
 
 @dataclass
+class EvalDataConfig:
+    root: str | None = None
+    ann_file: str | None = None
+
+
+@dataclass
 class LoaderConfig:
     batch_size: int = 2
     shuffle: bool = True
@@ -51,27 +57,52 @@ class OptimizerConfig:
     name: str = "sgd"
     lr: float = 0.001
     momentum: float = 0.9
+    betas: list[float] = field(default_factory=lambda: [0.9, 0.999])
+    eps: float = 1e-8
     weight_decay: float = 1e-4
+
+
+@dataclass
+class SchedulerConfig:
+    name: str = "none"
+    step_size: int = 8
+    gamma: float = 0.1
+    t_max: int = 10
+    eta_min: float = 0.0
 
 
 @dataclass
 class TrainingConfig:
     device: str = "auto"
     num_epochs: int = 10
+    sample_ratio: float = 1.0
+    resample_each_epoch: bool = True
+    sample_seed: int = 42
     run: str = "resnet101_teacher_resnet50_student"
     log_dir: str = "runs"
     checkpoint_dir: str = "checkpoints"
 
 
 @dataclass
+class EvaluationConfig:
+    enabled: bool = False
+    branch: str = "student"
+    interval: int = 1
+    metric: str = "bbox_mAP"
+
+
+@dataclass
 class ExperimentConfig:
     data: DataConfig
+    eval_data: EvalDataConfig = field(default_factory=EvalDataConfig)
     loader: LoaderConfig = field(default_factory=LoaderConfig)
     teacher: TeacherConfig = field(default_factory=TeacherConfig)
     student: StudentConfig = field(default_factory=StudentConfig)
     kd: KDConfig = field(default_factory=KDConfig)
     optimizer: OptimizerConfig = field(default_factory=OptimizerConfig)
+    scheduler: SchedulerConfig = field(default_factory=SchedulerConfig)
     training: TrainingConfig = field(default_factory=TrainingConfig)
+    evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -104,12 +135,15 @@ def apply_overrides(config_dict: dict[str, Any], overrides: list[str] | None) ->
 def experiment_config_from_dict(payload: dict[str, Any]) -> ExperimentConfig:
     return ExperimentConfig(
         data=DataConfig(**payload["data"]),
+        eval_data=EvalDataConfig(**payload.get("eval_data", {})),
         loader=LoaderConfig(**payload.get("loader", {})),
         teacher=TeacherConfig(**payload.get("teacher", {})),
         student=StudentConfig(**payload.get("student", {})),
         kd=KDConfig(**payload.get("kd", {})),
         optimizer=OptimizerConfig(**payload.get("optimizer", {})),
+        scheduler=SchedulerConfig(**payload.get("scheduler", {})),
         training=TrainingConfig(**payload.get("training", {})),
+        evaluation=EvaluationConfig(**payload.get("evaluation", {})),
     )
 
 

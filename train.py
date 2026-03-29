@@ -1,11 +1,12 @@
 from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from tqdm import tqdm
 
 from src.config import ExperimentConfig
 from src.data.coco import CocoDetectionKD, detection_collate_fn
+from src.evaluation.detection import evaluate_detection_model
 from src.kd.ssim_kd import MultiScaleSSIMKD
 from src.models.distiller import RetinaNetDistiller
 from src.models.retinanet_builder import build_teacher, build_student
@@ -31,24 +32,89 @@ def build_optimizer(model, optimizer_config):
             weight_decay=optimizer_config.weight_decay,
         )
 
+    if name == "adamw":
+        return torch.optim.AdamW(
+            params,
+            lr=optimizer_config.lr,
+            betas=tuple(optimizer_config.betas),
+            eps=optimizer_config.eps,
+            weight_decay=optimizer_config.weight_decay,
+        )
+
     raise ValueError(f"Unsupported optimizer: {optimizer_config.name}")
+
+
+def build_scheduler(optimizer, scheduler_config):
+    name = scheduler_config.name.lower()
+
+    if name == "none":
+        return None
+
+    if name == "step":
+        return torch.optim.lr_scheduler.StepLR(
+            optimizer,
+            step_size=scheduler_config.step_size,
+            gamma=scheduler_config.gamma,
+        )
+
+    if name == "cosine":
+        return torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer,
+            T_max=scheduler_config.t_max,
+            eta_min=scheduler_config.eta_min,
+        )
+
+    raise ValueError(f"Unsupported scheduler: {scheduler_config.name}")
+
+
+def build_detection_loader(dataset, loader_config, shuffle=None):
+    return DataLoader(
+        dataset,
+        batch_size=loader_config.batch_size,
+        shuffle=loader_config.shuffle if shuffle is None else shuffle,
+        num_workers=loader_config.num_workers,
+        collate_fn=detection_collate_fn,
+    )
+
+
+def build_epoch_loader(train_dataset, loader_config, training_config, epoch: int):
+    sample_ratio = training_config.sample_ratio
+    if sample_ratio <= 0 or sample_ratio > 1:
+        raise ValueError(f"training.sample_ratio must be in (0, 1], got {sample_ratio}.")
+
+    if sample_ratio >= 1.0:
+        return build_detection_loader(train_dataset, loader_config)
+
+    sample_size = max(1, int(len(train_dataset) * sample_ratio))
+    generator = torch.Generator()
+    seed = training_config.sample_seed
+    if training_config.resample_each_epoch:
+        seed += epoch - 1
+    generator.manual_seed(seed)
+
+    indices = torch.randperm(len(train_dataset), generator=generator)[:sample_size].tolist()
+    subset = Subset(train_dataset, indices)
+    return build_detection_loader(subset, loader_config)
 
 
 def build_training_components(config: ExperimentConfig):
     device = resolve_device(config.training.device)
 
-    dataset = CocoDetectionKD(
+    train_dataset = CocoDetectionKD(
         root=config.data.root,
         annFile=config.data.ann_file,
     )
 
-    loader = DataLoader(
-        dataset,
-        batch_size=config.loader.batch_size,
-        shuffle=config.loader.shuffle,
-        num_workers=config.loader.num_workers,
-        collate_fn=detection_collate_fn,
-    )
+    eval_loader = None
+    if config.evaluation.enabled:
+        if not config.eval_data.root or not config.eval_data.ann_file:
+            raise ValueError("Evaluation is enabled but eval_data.root or eval_data.ann_file is missing.")
+
+        eval_dataset = CocoDetectionKD(
+            root=config.eval_data.root,
+            annFile=config.eval_data.ann_file,
+        )
+        eval_loader = build_detection_loader(eval_dataset, config.loader, shuffle=False)
 
     teacher = build_teacher(
         num_classes=config.teacher.num_classes,
@@ -81,10 +147,27 @@ def build_training_components(config: ExperimentConfig):
     ).to(device)
 
     optimizer = build_optimizer(model, config.optimizer)
-    return model, loader, optimizer, device
+    scheduler = build_scheduler(optimizer, config.scheduler)
+    return model, train_dataset, eval_loader, optimizer, scheduler, device
 
 
-def train(model, loader, optimizer, device, num_epochs=3, run=None, log_dir="runs", checkpoint_dir="checkpoints"):
+def train(
+    model,
+    train_dataset,
+    loader_config,
+    training_config,
+    optimizer,
+    scheduler,
+    device,
+    num_epochs=3,
+    run=None,
+    log_dir="runs",
+    checkpoint_dir="checkpoints",
+    eval_loader=None,
+    eval_branch="student",
+    eval_metric="bbox_mAP",
+    eval_interval=1,
+):
 
     run_name = run or "experiment"
     log_path = Path(log_dir) / run_name
@@ -98,7 +181,9 @@ def train(model, loader, optimizer, device, num_epochs=3, run=None, log_dir="run
 
     # Epoch loop
     for epoch in range(1, num_epochs + 1):
+        loader = build_epoch_loader(train_dataset, loader_config, training_config, epoch)
         print(f"\nEpoch {epoch}/{num_epochs}")
+        print(f"Training samples this epoch: {len(loader.dataset)}")
         stats = {}
         # Batch loop
         pbar = tqdm(loader, desc=f"Epoch {epoch}", leave=False)
@@ -130,6 +215,38 @@ def train(model, loader, optimizer, device, num_epochs=3, run=None, log_dir="run
         num_batches = max(len(loader), 1)
         stats = {k: v / num_batches for k, v in stats.items()}
 
+        if eval_loader is not None and epoch % eval_interval == 0:
+            eval_metrics = evaluate_detection_model(
+                model=model,
+                loader=eval_loader,
+                device=device,
+                branch=eval_branch,
+            )
+            metric_value = eval_metrics.get(eval_metric)
+            metric_display = f"{metric_value:.4f}" if metric_value is not None else "n/a"
+            summary_keys = [
+                "bbox_mAP",
+                "bbox_mAP_50",
+                "bbox_mAP_75",
+                "bbox_mAP_small",
+                "bbox_mAP_medium",
+                "bbox_mAP_large",
+            ]
+            summary = ", ".join(
+                f"{key}={eval_metrics[key]:.4f}"
+                for key in summary_keys
+                if key in eval_metrics
+            )
+            print(f"Eval {eval_metric}: {metric_display}")
+            print(f"Eval metrics: {summary}")
+            for key, value in eval_metrics.items():
+                writer.add_scalar(f"eval/{key}", value, epoch)
+            writer.flush()
+
+        if scheduler is not None:
+            scheduler.step()
+            writer.add_scalar("train/lr", optimizer.param_groups[0]["lr"], epoch)
+
 
     final_checkpoint = checkpoint_path / f"{run_name}_final.pth"
     torch.save(model.student.state_dict(), final_checkpoint)
@@ -138,14 +255,21 @@ def train(model, loader, optimizer, device, num_epochs=3, run=None, log_dir="run
 
 
 def train_from_config(config: ExperimentConfig):
-    model, loader, optimizer, device = build_training_components(config)
+    model, train_dataset, eval_loader, optimizer, scheduler, device = build_training_components(config)
     train(
         model=model,
-        loader=loader,
+        train_dataset=train_dataset,
+        loader_config=config.loader,
+        training_config=config.training,
         optimizer=optimizer,
+        scheduler=scheduler,
         device=device,
         num_epochs=config.training.num_epochs,
         run=config.training.run,
         log_dir=config.training.log_dir,
         checkpoint_dir=config.training.checkpoint_dir,
+        eval_loader=eval_loader,
+        eval_branch=config.evaluation.branch,
+        eval_metric=config.evaluation.metric,
+        eval_interval=config.evaluation.interval,
     )
