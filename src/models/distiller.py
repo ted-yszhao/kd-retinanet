@@ -18,7 +18,15 @@ class RetinaNetDistiller(nn.Module):
         for p in self.teacher.parameters():
             p.requires_grad = False
 
-    def forward(self, images, targets):
+    def forward(self, images, targets=None, branch="student"):
+        if targets is None:
+            if branch == "teacher":
+                with torch.no_grad():
+                    return self.teacher(images)
+            if branch in {"student", "distiller", "full"}:
+                return self.student(images)
+            raise ValueError(f"Unsupported inference branch: {branch}")
+
         student_loss_dict = self.student(images, targets)
         det_loss = sum(student_loss_dict.values())
 
