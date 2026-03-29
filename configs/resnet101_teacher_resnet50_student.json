@@ -1,0 +1,45 @@
+{
+  "data": {
+    "root": "../data/train2017",
+    "ann_file": "datasets/coco/annotations/instances_train2017.json"
+  },
+  "loader": {
+    "batch_size": 4,
+    "shuffle": true,
+    "num_workers": 2
+  },
+  "teacher": {
+    "num_classes": 91,
+    "backbone_name": "resnet101",
+    "backbone_weights": "DEFAULT",
+    "trainable_layers": 3,
+    "returned_layers": [2, 3, 4],
+    "extra_blocks_in_channels": 256,
+    "extra_blocks_out_channels": 256
+  },
+  "student": {
+    "num_classes": 91,
+    "detector_weights": null,
+    "backbone_weights": "DEFAULT",
+    "trainable_backbone_layers": 3
+  },
+  "kd": {
+    "keys": ["2"],
+    "weights": [1.0],
+    "window_size": 7,
+    "kd_weight": 0.5
+  },
+  "optimizer": {
+    "name": "sgd",
+    "lr": 0.001,
+    "momentum": 0.9,
+    "weight_decay": 0.0001
+  },
+  "training": {
+    "device": "auto",
+    "num_epochs": 10,
+    "run": "resnet101_teacher_resnet50_student",
+    "log_dir": "runs",
+    "checkpoint_dir": "checkpoints"
+  }
+}
