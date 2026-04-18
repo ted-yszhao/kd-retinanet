@@ -1,6 +1,8 @@
 # Datasets
 datasets/
 __pycache__/
+**/__pycache__/
+*.py[cod]
 *.zip
 *.tar.gz
 runs/
