@@ -1,0 +1,113 @@
+\documentclass[12pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage[numbers]{natbib}
+
+\title{Knowledge Distillation for Efficient RetinaNet Object Detection}
+\author{Author Name}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+Object detection is a core problem in computer vision with applications in autonomous systems, intelligent surveillance, robotics, and medical image analysis. In recent years, deep convolutional detectors have achieved strong accuracy on large-scale benchmarks such as MS COCO, driven by advances in backbone design, multi-scale feature fusion, and improved training objectives \cite{lin2014coco,he2016resnet,lin2017fpn,lin2017focal}. However, the detectors that obtain the highest accuracy often rely on deep backbones and heavy feature extractors, which makes them expensive to deploy in settings with limited memory, latency, or energy budgets. This creates a practical tension: modern detection systems must remain accurate while also becoming efficient enough for real-world inference constraints.
+
+One-stage detectors are especially attractive in this context because they offer a clean trade-off between accuracy and speed. RetinaNet is a particularly influential one-stage detector because it combines a Feature Pyramid Network (FPN) with focal loss to address extreme foreground-background imbalance during dense prediction \cite{lin2017fpn,lin2017focal}. Even so, RetinaNet performance depends strongly on the backbone capacity. A detector with a deep \texttt{ResNet-101} feature extractor typically yields better representations than a detector with a lighter \texttt{ResNet-18} backbone, but the latter is preferable when deployment efficiency matters. A natural question is therefore whether the representational strength of a larger RetinaNet can be transferred into a smaller one without reproducing the full computational cost at inference time.
+
+Knowledge distillation offers a principled framework for this goal. In the standard teacher-student setting, a large model is first used as a source of supervision and a smaller student is trained to imitate selected aspects of the teacher while still optimizing the task objective \cite{hinton2015distilling}. Earlier work explored distillation through softened logits, intermediate hints, and attention transfer \cite{romero2015fitnets,zagoruyko2017paying}. In object detection, distillation is more challenging because the model must preserve classification, localization, and multi-scale feature reasoning simultaneously. Recent detection-oriented distillation methods therefore supervise feature maps, spatial relations, and foreground regions rather than relying only on final predictions \cite{wang2019distilling,yang2022focal}.
+
+This thesis studies knowledge distillation for efficient one-stage object detection using RetinaNet as the common detection framework. The implemented system uses a frozen teacher detector with a \texttt{ResNet-101} or \texttt{ResNet-50} FPN backbone and trains a smaller student detector, including a \texttt{ResNet-18} configuration, on the same detection task. In addition to the native RetinaNet detection losses, the student is optimized with a feature-based distillation loss applied to FPN representations. Instead of matching raw feature tensors directly with a pointwise criterion, the method uses a structural similarity objective that encourages the student to reproduce the teacher's local spatial organization within the feature pyramid.
+
+The central idea is that feature distillation for detection should preserve not only activation magnitude but also structural relationships that matter for object localization across scales. Structural similarity, originally introduced for image quality assessment, is well suited to this purpose because it compares local statistics such as mean, variance, and correlation rather than treating each activation independently \cite{wang2004ssim}. By applying a multi-scale SSIM-based objective to teacher and student FPN maps, the proposed approach encourages the student to learn teacher-like spatial patterns while still being trained end-to-end for dense detection.
+
+The contributions of this thesis are threefold. First, it presents a practical RetinaNet distillation framework that supports interchangeable teacher and student backbones under a unified training pipeline. Second, it investigates an SSIM-based feature distillation objective for FPN representations in one-stage object detection. Third, it provides an empirical basis for comparing student-only RetinaNet training against teacher-guided training under COCO-style evaluation. Taken together, the thesis aims to show that carefully designed feature-level distillation can improve compact detectors and serve as a useful strategy for efficient deployment.
+
+\section{Previous Work}
+\subsection{Deep Object Detection}
+Modern object detection systems are largely dominated by convolutional and transformer-based deep learning methods, but convolutional detectors remain strong baselines because of their maturity, efficiency, and implementation stability. Two-stage detectors such as Faster R-CNN first generate region proposals and then classify them, while one-stage detectors directly predict dense object hypotheses over feature maps \cite{ren2015faster}. One-stage methods historically lagged in accuracy because of severe class imbalance during dense training, but RetinaNet narrowed this gap by introducing focal loss, which down-weights easy negatives and focuses learning on hard examples \cite{lin2017focal}. This made RetinaNet one of the most important foundations for efficient dense detection.
+
+Another key development was the Feature Pyramid Network. FPN constructs semantically strong features at multiple resolutions by combining top-down pathways with lateral connections from the backbone \cite{lin2017fpn}. This design is particularly important in detection because objects vary greatly in scale, and pyramid features allow the detector head to reason across small, medium, and large objects. Since RetinaNet is built on top of FPN features, any distillation strategy for RetinaNet should account for the multi-scale structure of the feature pyramid rather than treating the detector as a single-resolution classifier.
+
+\subsection{Knowledge Distillation}
+Knowledge distillation was popularized by Hinton et al., who showed that a student model can benefit from the softened output distribution of a larger teacher \cite{hinton2015distilling}. Since then, the literature has expanded beyond logits. FitNets proposed the use of intermediate feature hints so that a thinner and deeper student could mimic hidden representations of a teacher \cite{romero2015fitnets}. Attention transfer further argued that matching spatial attention maps can be more robust than directly matching all channels \cite{zagoruyko2017paying}. These methods established a broader view of distillation: the teacher can supervise the student at multiple abstraction levels, not only at the final prediction layer.
+
+Feature-based distillation is especially relevant when student and teacher differ in capacity but share a related architecture. In detection, this often means aligning intermediate feature maps or semantically meaningful regions. Compared with plain output matching, feature supervision can guide optimization earlier in the forward pass and may be better suited to tasks that require localization-sensitive representations. This is consistent with the design of FPN-based detectors, where detection quality depends heavily on the internal structure of multi-scale features.
+
+\subsection{Knowledge Distillation for Object Detection}
+Detection-specific distillation methods extend the teacher-student paradigm to classification and localization jointly. Chen et al.\ proposed distilling rich feature representations for object detectors and argued that intermediate imitation is more informative than only matching final outputs \cite{chen2017learning}. Wang et al.\ introduced fine-grained feature imitation for dense detectors, emphasizing regions that likely contain objects instead of the entire image uniformly \cite{wang2019distilling}. Yang et al.\ proposed Focal and Global Distillation (FGD), which combines foreground emphasis with global contextual transfer to improve detector compression \cite{yang2022focal}. Together, these works suggest that successful detection distillation should be spatially aware and should privilege informative regions or structures.
+
+The present thesis is most closely related to this feature-based line of work. However, instead of designing explicit foreground masks or relation modules, it explores a simpler criterion based on structural similarity. This choice is motivated by two observations. First, the pyramid features of RetinaNet are spatial tensors whose local statistics carry meaningful information about object extent and context. Second, a structural measure may preserve teacher organization more faithfully than pointwise losses when student and teacher differ substantially in capacity. The method therefore situates itself at the intersection of FPN-based detection distillation and structure-aware feature matching.
+
+\subsection{Structural Similarity as a Distillation Signal}
+The Structural Similarity Index Measure (SSIM) was introduced as a perceptual metric for image quality assessment by comparing luminance, contrast, and structural information between images \cite{wang2004ssim}. Although SSIM originated outside knowledge distillation, its emphasis on local structure makes it a compelling supervision signal for convolutional features. Rather than penalizing every activation independently, SSIM encourages consistency in local statistical patterns, which may better reflect the geometry encoded in detection features.
+
+Recent representation learning and restoration methods have shown that structural losses can preserve spatial organization effectively, especially when exact value matching is unnecessarily strict. In this thesis, SSIM is repurposed as a feature-space objective between teacher and student FPN maps. The hypothesis is that enforcing structural agreement at selected pyramid levels can improve the student detector without requiring complex auxiliary branches or proposal-level matching.
+
+\section{Method}
+\subsection{Problem Formulation}
+Let a teacher detector $T$ and a student detector $S$ operate on an input image $x$ with ground-truth annotations $y$. Both models follow the RetinaNet detection framework, but they may use different ResNet backbones. The goal is to train the student so that it maintains the inference efficiency of a compact detector while recovering part of the representational strength of a larger teacher. During training, the teacher is frozen and serves only as a source of supervisory signals. During inference, only the student is used.
+
+The student is trained with two objectives: the native RetinaNet detection loss and a feature distillation loss. Denoting the student detection loss by $\mathcal{L}_{det}$ and the distillation loss by $\mathcal{L}_{kd}$, the total objective is
+\begin{equation}
+\mathcal{L} = \mathcal{L}_{det} + \lambda \mathcal{L}_{kd},
+\end{equation}
+where $\lambda$ is a scalar hyperparameter controlling the contribution of distillation. In the implementation used in this project, $\lambda=0.5$ by default.
+
+\subsection{Teacher and Student Architecture}
+Both teacher and student are instantiated as RetinaNet detectors implemented with \texttt{torchvision}. The teacher uses a ResNet-FPN backbone constructed through \texttt{resnet\_fpn\_backbone}, while the student uses either the standard \texttt{retinanet\_resnet50\_fpn} shortcut or a custom RetinaNet built from a lighter ResNet-FPN backbone. This design allows controlled experiments in which the detector head and training framework remain fixed while backbone capacity changes.
+
+The teacher branch is configured with a stronger backbone such as \texttt{ResNet-101}, and its parameters are frozen throughout training. The student branch is fully trainable and optimized with backpropagation. Since both models expose pyramid features through the FPN backbone, the framework naturally supports feature-level supervision at selected pyramid levels. In the current implementation, pyramid features are extracted after the input images are processed by RetinaNet's internal transform and backbone modules. If the backbone returns an ordered dictionary of feature maps, those maps are used directly as distillation targets.
+
+\subsection{RetinaNet Detection Loss}
+RetinaNet combines classification and box regression losses over dense anchors \cite{lin2017focal}. The classification branch uses focal loss to address the extreme imbalance between background and object anchors. The regression branch predicts bounding-box offsets for positive anchors. In the implementation, the student model returns a dictionary of detection losses, and these terms are summed to form
+\begin{equation}
+\mathcal{L}_{det} = \mathcal{L}_{cls} + \mathcal{L}_{box},
+\end{equation}
+where $\mathcal{L}_{cls}$ denotes the focal classification loss and $\mathcal{L}_{box}$ denotes the bounding-box regression loss. This detector objective is identical to standard RetinaNet training and ensures that distillation acts as an auxiliary training signal rather than replacing the detection task.
+
+\subsection{FPN Feature Extraction}
+For an image batch, the teacher and student each produce a set of FPN features
+\begin{equation}
+\{F_s^{(l)}\}_{l \in \mathcal{P}}, \qquad \{F_t^{(l)}\}_{l \in \mathcal{P}},
+\end{equation}
+where $\mathcal{P}$ indexes the selected pyramid levels and each feature tensor has spatial dimensions corresponding to a particular scale. The implementation currently allows distillation on a configurable subset of feature keys, with a default choice focusing on one intermediate pyramid level. When teacher and student produce feature maps with different spatial sizes at the selected level, the student feature is resized by bilinear interpolation to match the teacher resolution before computing the distillation loss.
+
+\subsection{SSIM-Based Feature Distillation}
+The key contribution of the method is a multi-scale structural similarity loss applied to FPN feature maps. For each selected pyramid level $l$, the teacher feature $F_t^{(l)}$ and student feature $F_s^{(l)}$ are first normalized channel-wise using their spatial mean and standard deviation:
+\begin{equation}
+\hat{F}^{(l)} = \frac{F^{(l)} - \mu(F^{(l)})}{\sigma(F^{(l)}) + \epsilon},
+\end{equation}
+where $\mu(\cdot)$ and $\sigma(\cdot)$ are computed over the spatial dimensions and $\epsilon$ is a small constant for numerical stability.
+
+After normalization, the feature maps are averaged across channels to obtain a single structural response map per pyramid level:
+\begin{equation}
+A_s^{(l)} = \frac{1}{C}\sum_{c=1}^{C}\hat{F}_{s,c}^{(l)}, \qquad
+A_t^{(l)} = \frac{1}{C}\sum_{c=1}^{C}\hat{F}_{t,c}^{(l)}.
+\end{equation}
+This step reduces the influence of channel dimensionality differences and focuses the comparison on shared spatial organization.
+
+The distillation term is then defined as a weighted sum of SSIM losses across the selected pyramid levels:
+\begin{equation}
+\mathcal{L}_{kd} = \sum_{l \in \mathcal{P}} \alpha_l \, \mathcal{L}_{SSIM}\left(A_s^{(l)}, A_t^{(l)}\right),
+\end{equation}
+where $\alpha_l$ is the user-defined weight for pyramid level $l$. In practice, the implementation uses the SSIM loss provided by Kornia with a configurable window size, set to $7$ by default. The use of SSIM encourages the student to match teacher feature structure in terms of local intensity patterns, contrast relationships, and spatial correlation. This differs from standard $\ell_1$ or $\ell_2$ matching, which penalize activation differences pointwise and may ignore higher-order local organization.
+
+\subsection{Training Procedure}
+Training proceeds as follows. For each minibatch, the student performs a standard forward pass with detection targets to obtain RetinaNet losses. The teacher then processes the same images in evaluation mode without gradient tracking to produce feature targets. Student FPN features are extracted from the same transformed inputs, the SSIM-based distillation loss is computed, and the combined loss in Eq.~(1) is backpropagated only through the student. This keeps optimization efficient and ensures that the teacher remains fixed.
+
+The framework supports both distillation training and student-only training through configuration. When knowledge distillation is disabled, the system reduces to ordinary RetinaNet optimization. When distillation is enabled, the optimizer is applied only to the trainable student parameters. The current implementation supports AdamW and SGD, periodic COCO evaluation, TensorBoard logging, and per-epoch subset sampling. Subset sampling is useful for controlled experiments because it reduces computational cost while preserving the same training code path across runs.
+
+\subsection{Evaluation Protocol}
+Evaluation is conducted with COCO-style metrics using \texttt{pycocotools}, including overall bounding-box mean Average Precision (mAP), mAP at IoU thresholds $0.50$ and $0.75$, and scale-specific scores for small, medium, and large objects \cite{lin2014coco}. During evaluation, the framework can report either teacher or student performance, but the primary thesis setting focuses on the student branch because the teacher is only a training-time aid. Comparisons should therefore be made between a student trained from scratch and the same student trained with teacher-guided feature distillation.
+
+\subsection{Discussion of Design Choices}
+The method makes three deliberate design choices. First, it keeps teacher and student within the same RetinaNet family, which isolates the effect of distillation from architectural mismatches. Second, it distills FPN features instead of output logits, because dense detection relies heavily on internal multi-scale representations. Third, it uses SSIM to compare normalized, channel-aggregated features, prioritizing structural agreement over exact activation replication. These choices aim to produce a simple but effective distillation baseline that is closely aligned with the internal mechanics of RetinaNet.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
