@@ -39,6 +39,7 @@ class TeacherConfig:
 @dataclass
 class StudentConfig:
     num_classes: int = 91
+    backbone_name: str = "resnet50"
     detector_weights: str | None = None
     backbone_weights: str | None = "DEFAULT"
     trainable_backbone_layers: int = 3
@@ -46,6 +47,7 @@ class StudentConfig:
 
 @dataclass
 class KDConfig:
+    enabled: bool = True
     keys: list[str] = field(default_factory=lambda: ["2"])
     weights: list[float] = field(default_factory=lambda: [1.0])
     window_size: int = 7
@@ -96,9 +98,9 @@ class ExperimentConfig:
     data: DataConfig
     eval_data: EvalDataConfig = field(default_factory=EvalDataConfig)
     loader: LoaderConfig = field(default_factory=LoaderConfig)
-    teacher: TeacherConfig = field(default_factory=TeacherConfig)
+    teacher: TeacherConfig | None = field(default_factory=TeacherConfig)
     student: StudentConfig = field(default_factory=StudentConfig)
-    kd: KDConfig = field(default_factory=KDConfig)
+    kd: KDConfig | None = field(default_factory=KDConfig)
     optimizer: OptimizerConfig = field(default_factory=OptimizerConfig)
     scheduler: SchedulerConfig = field(default_factory=SchedulerConfig)
     training: TrainingConfig = field(default_factory=TrainingConfig)
@@ -133,13 +135,15 @@ def apply_overrides(config_dict: dict[str, Any], overrides: list[str] | None) ->
 
 
 def experiment_config_from_dict(payload: dict[str, Any]) -> ExperimentConfig:
+    teacher_payload = payload.get("teacher", {})
+    kd_payload = payload.get("kd", {})
     return ExperimentConfig(
         data=DataConfig(**payload["data"]),
         eval_data=EvalDataConfig(**payload.get("eval_data", {})),
         loader=LoaderConfig(**payload.get("loader", {})),
-        teacher=TeacherConfig(**payload.get("teacher", {})),
+        teacher=None if teacher_payload is None else TeacherConfig(**teacher_payload),
         student=StudentConfig(**payload.get("student", {})),
-        kd=KDConfig(**payload.get("kd", {})),
+        kd=None if kd_payload is None else KDConfig(**kd_payload),
         optimizer=OptimizerConfig(**payload.get("optimizer", {})),
         scheduler=SchedulerConfig(**payload.get("scheduler", {})),
         training=TrainingConfig(**payload.get("training", {})),

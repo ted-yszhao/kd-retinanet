@@ -23,7 +23,7 @@
   },
   "student": {
     "num_classes": 91,
-    "backbone_name": "resnet50",
+    "backbone_name": "resnet18",
     "detector_weights": null,
     "backbone_weights": "DEFAULT",
     "trainable_backbone_layers": 3
@@ -51,7 +51,7 @@
     "sample_ratio": 0.3,
     "resample_each_epoch": true,
     "sample_seed": 42,
-    "run": "resnet101_teacher_resnet50_student",
+    "run": "resnet101_teacher_resnet18_student",
     "log_dir": "runs",
     "checkpoint_dir": "checkpoints"
   },

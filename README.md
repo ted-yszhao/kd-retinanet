@@ -74,6 +74,12 @@ Train with a different config file:
 python main.py --config configs/resnet101_teacher_resnet50_student.json
 ```
 
+Train a vanilla RetinaNet detector with a `resnet18` backbone:
+
+```bash
+python main.py --config configs/vanilla_retinanet_resnet18.json
+```
+
 Override values from the CLI:
 
 ```bash
@@ -87,6 +93,8 @@ python main.py \
 ## Config File
 
 The default experiment config is [configs/resnet101_teacher_resnet50_student.json](/root/kd-retinanet/configs/resnet101_teacher_resnet50_student.json).
+
+For standalone detector training without knowledge distillation, use [configs/vanilla_retinanet_resnet18.json](/root/kd-retinanet/configs/vanilla_retinanet_resnet18.json). That config now runs directly through [main.py](/root/kd-retinanet/main.py) with `teacher: null` and `kd.enabled: false`.
 
 It is organized into these sections:
 
@@ -153,6 +161,21 @@ It is organized into these sections:
 - `interval`: run evaluation every N epochs
 - `metric`: currently `bbox_mAP`
 
+`teacher`
+
+- set to `null` to train only the student model with no teacher branch
+
+`kd`
+
+- `enabled`: set to `false` to skip KD loss and train only with detector losses
+
+`student`
+
+- `backbone_name`: `resnet50` or `resnet18`
+- `detector_weights`: only supported with `resnet50`
+- `backbone_weights`
+- `trainable_backbone_layers`
+
 ## Common Recipes
 
 Train on full data each epoch:
@@ -196,6 +219,24 @@ python main.py \
   --set loader.num_workers=0 \
   --set evaluation.enabled=false \
   --set training.run="smoke_train"
+```
+
+Use a `resnet18` student:
+
+```bash
+python main.py \
+  --set student.backbone_name="resnet18" \
+  --set student.detector_weights=null \
+  --set training.run="resnet101_teacher_resnet18_student"
+```
+
+Disable teacher/KD and train only the student from the main entrypoint:
+
+```bash
+python main.py \
+  --set teacher=null \
+  --set kd.enabled=false \
+  --set training.run="student_only"
 ```
 
 ## Evaluation And TensorBoard

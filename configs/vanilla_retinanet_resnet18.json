@@ -12,27 +12,20 @@
     "shuffle": true,
     "num_workers": 2
   },
-  "teacher": {
-    "num_classes": 91,
-    "backbone_name": "resnet101",
-    "backbone_weights": "DEFAULT",
-    "trainable_layers": 3,
-    "returned_layers": [2, 3, 4],
-    "extra_blocks_in_channels": 256,
-    "extra_blocks_out_channels": 256
-  },
+  "teacher": null,
   "student": {
     "num_classes": 91,
-    "backbone_name": "resnet50",
+    "backbone_name": "resnet18",
     "detector_weights": null,
     "backbone_weights": "DEFAULT",
     "trainable_backbone_layers": 3
   },
   "kd": {
+    "enabled": false,
     "keys": ["2"],
     "weights": [1.0],
     "window_size": 7,
-    "kd_weight": 0.5
+    "kd_weight": 0.0
   },
   "optimizer": {
     "name": "adamw",
@@ -51,7 +44,7 @@
     "sample_ratio": 0.3,
     "resample_each_epoch": true,
     "sample_seed": 42,
-    "run": "resnet101_teacher_resnet50_student",
+    "run": "vanilla_retinanet_resnet18",
     "log_dir": "runs",
     "checkpoint_dir": "checkpoints"
   },

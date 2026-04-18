@@ -22,7 +22,8 @@ def resolve_device(device: str) -> str:
 
 def build_optimizer(model, optimizer_config):
     name = optimizer_config.name.lower()
-    params = [p for p in model.student.parameters() if p.requires_grad]
+    trainable_model = model.student if hasattr(model, "student") else model
+    params = [p for p in trainable_model.parameters() if p.requires_grad]
 
     if name == "sgd":
         return torch.optim.SGD(
@@ -116,35 +117,47 @@ def build_training_components(config: ExperimentConfig):
         )
         eval_loader = build_detection_loader(eval_dataset, config.loader, shuffle=False)
 
-    teacher = build_teacher(
-        num_classes=config.teacher.num_classes,
-        backbone_name=config.teacher.backbone_name,
-        backbone_weights=config.teacher.backbone_weights,
-        trainable_layers=config.teacher.trainable_layers,
-        returned_layers=config.teacher.returned_layers,
-        extra_blocks_in_channels=config.teacher.extra_blocks_in_channels,
-        extra_blocks_out_channels=config.teacher.extra_blocks_out_channels,
-    ).to(device)
-
     student = build_student(
         num_classes=config.student.num_classes,
+        backbone_name=config.student.backbone_name,
         detector_weights=config.student.detector_weights,
         backbone_weights=config.student.backbone_weights,
         trainable_backbone_layers=config.student.trainable_backbone_layers,
     ).to(device)
 
-    kd_loss = MultiScaleSSIMKD(
-        keys=tuple(config.kd.keys),
-        weights=tuple(config.kd.weights),
-        window_size=config.kd.window_size,
-    ).to(device)
+    kd_enabled = (
+        config.teacher is not None
+        and config.kd is not None
+        and config.kd.enabled
+    )
 
-    model = RetinaNetDistiller(
-        teacher=teacher,
-        student=student,
-        kd_loss=kd_loss,
-        kd_weight=config.kd.kd_weight,
-    ).to(device)
+    if kd_enabled:
+        teacher = build_teacher(
+            num_classes=config.teacher.num_classes,
+            backbone_name=config.teacher.backbone_name,
+            backbone_weights=config.teacher.backbone_weights,
+            trainable_layers=config.teacher.trainable_layers,
+            returned_layers=config.teacher.returned_layers,
+            extra_blocks_in_channels=config.teacher.extra_blocks_in_channels,
+            extra_blocks_out_channels=config.teacher.extra_blocks_out_channels,
+        ).to(device)
+
+        kd_loss = MultiScaleSSIMKD(
+            keys=tuple(config.kd.keys),
+            weights=tuple(config.kd.weights),
+            window_size=config.kd.window_size,
+        ).to(device)
+
+        model = RetinaNetDistiller(
+            teacher=teacher,
+            student=student,
+            kd_loss=kd_loss,
+            kd_weight=config.kd.kd_weight,
+        ).to(device)
+    else:
+        if config.evaluation.enabled and config.evaluation.branch == "teacher":
+            raise ValueError("evaluation.branch='teacher' requires teacher/KD training to be enabled.")
+        model = student
 
     optimizer = build_optimizer(model, config.optimizer)
     scheduler = build_scheduler(optimizer, config.scheduler)
@@ -193,6 +206,14 @@ def train(
 
             optimizer.zero_grad(set_to_none=True)
             losses = model(images, targets)
+            if "loss_total" not in losses:
+                det_loss = sum(losses.values())
+                losses = {
+                    "loss_total": det_loss,
+                    "loss_det": det_loss,
+                    "loss_kd": det_loss.new_zeros(()),
+                    **losses,
+                }
             losses["loss_total"].backward()
             optimizer.step()
             global_step += 1
@@ -249,7 +270,8 @@ def train(
 
 
     final_checkpoint = checkpoint_path / f"{run_name}_final.pth"
-    torch.save(model.student.state_dict(), final_checkpoint)
+    trainable_model = model.student if hasattr(model, "student") else model
+    torch.save(trainable_model.state_dict(), final_checkpoint)
     print(f"Model saved to {final_checkpoint}")
     writer.close()
 
