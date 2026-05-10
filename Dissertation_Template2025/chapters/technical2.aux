@@ -1,19 +1,30 @@
 \relax 
 \providecommand\hyper@newdestlabel[2]{}
 \citation{lin2017focal}
-\@writefile{toc}{\contentsline {chapter}{\numberline {4}Training and Evaluation Framework}{21}{chapter.4}\protected@file@percent }
+\citation{lin2017fpn,wang2004ssim,wang2003msssim,derijk2022structural}
+\@writefile{toc}{\contentsline {chapter}{\numberline {4}Training and Evaluation Framework}{24}{chapter.4}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\@writefile{toc}{\contentsline {section}{\numberline {4.1}RetinaNet Detection Loss}{21}{section.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4.2}FPN Feature Extraction}{21}{section.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4.3}SSIM-Based Feature Distillation}{22}{section.4.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4.4}Training Procedure}{22}{section.4.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.1}RetinaNet Detection Loss}{24}{section.4.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.2}FPN Feature Extraction}{24}{section.4.2}\protected@file@percent }
+\citation{lin2017fpn,wang2004ssim,wang2003msssim,derijk2022structural}
+\citation{lin2017fpn,wang2004ssim,wang2003msssim,derijk2022structural}
+\@writefile{lof}{\contentsline {figure}{\numberline {4.1}{\ignorespaces Schematic of the proposed FPN-based hierarchical SSIM distillation pipeline. Teacher and student first construct aligned RetinaNet pyramid features, selected FPN levels are matched, normalized, reduced to response maps, and compared through local SSIM statistics before level-wise weighted aggregation into the final knowledge-distillation term \cite  {lin2017fpn,wang2004ssim,wang2003msssim,derijk2022structural}.\relax }}{25}{figure.caption.15}\protected@file@percent }
+\newlabel{fig:method-fpn-ssim}{{4.1}{25}{Schematic of the proposed FPN-based hierarchical SSIM distillation pipeline. Teacher and student first construct aligned RetinaNet pyramid features, selected FPN levels are matched, normalized, reduced to response maps, and compared through local SSIM statistics before level-wise weighted aggregation into the final knowledge-distillation term \cite {lin2017fpn,wang2004ssim,wang2003msssim,derijk2022structural}.\relax }{figure.caption.15}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.3}Hierarchical SSIM Knowledge Distillation Loss}{25}{section.4.3}\protected@file@percent }
+\citation{wang2004ssim}
+\citation{wang2004ssim}
+\citation{wang2004ssim,nilsson2020understandssim,venkataramanan2021ssimguide}
+\citation{lin2017fpn,wang2003msssim,derijk2022structural}
+\citation{riba2020kornia}
+\@writefile{toc}{\contentsline {section}{\numberline {4.4}Training Procedure}{27}{section.4.4}\protected@file@percent }
 \citation{lin2014coco}
-\@writefile{toc}{\contentsline {section}{\numberline {4.5}Evaluation Protocol}{23}{section.4.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {4.6}Summary}{23}{section.4.6}\protected@file@percent }
+\citation{lin2014coco}
+\@writefile{toc}{\contentsline {section}{\numberline {4.5}Evaluation Protocol}{29}{section.4.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {4.6}Summary}{30}{section.4.6}\protected@file@percent }
 \@setckpt{./chapters/technical2}{
-\setcounter{page}{24}
-\setcounter{equation}{5}
+\setcounter{page}{31}
+\setcounter{equation}{12}
 \setcounter{enumi}{0}
 \setcounter{enumii}{0}
 \setcounter{enumiii}{0}
@@ -27,7 +38,7 @@
 \setcounter{subsubsection}{0}
 \setcounter{paragraph}{0}
 \setcounter{subparagraph}{0}
-\setcounter{figure}{0}
+\setcounter{figure}{1}
 \setcounter{table}{0}
 \setcounter{LT@tables}{0}
 \setcounter{LT@chunks}{0}
@@ -43,7 +54,7 @@
 \setcounter{parentequation}{0}
 \setcounter{Item}{0}
 \setcounter{Hfootnote}{0}
-\setcounter{bookmark@seq@number}{27}
+\setcounter{bookmark@seq@number}{29}
 \setcounter{NAT@ctr}{0}
 \setcounter{float@type}{4}
 \setcounter{FBl@b}{0}

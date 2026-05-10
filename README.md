@@ -1,6 +1,6 @@
 # KD-RetinaNet
 
-KD-RetinaNet is a RetinaNet knowledge distillation training project built around a central config file and a small CLI. The current setup supports configurable teacher and student models, COCO evaluation through `pycocotools`, TensorBoard logging, and per-epoch subset sampling for cheaper experiments.
+KD-RetinaNet is a RetinaNet knowledge distillation training project built around JSON experiment configs and a small CLI. The current setup supports configurable teacher and student models, COCO evaluation through `pycocotools`, TensorBoard logging, and per-epoch subset sampling for cheaper experiments.
 
 ## Setup
 
@@ -80,6 +80,12 @@ Train a vanilla RetinaNet detector with a `resnet18` backbone:
 python main.py --config configs/vanilla_retinanet_resnet18.json
 ```
 
+Train a vanilla RetinaNet detector with a `resnet50` backbone:
+
+```bash
+python main.py --config configs/vanilla_retinanet_resnet50.json
+```
+
 Override values from the CLI:
 
 ```bash
@@ -90,11 +96,33 @@ python main.py \
   --set training.sample_ratio=0.1
 ```
 
-## Config File
+## Config Files
 
 The default experiment config is [configs/resnet101_teacher_resnet50_student.json](/root/kd-retinanet/configs/resnet101_teacher_resnet50_student.json).
 
-For standalone detector training without knowledge distillation, use [configs/vanilla_retinanet_resnet18.json](/root/kd-retinanet/configs/vanilla_retinanet_resnet18.json). That config now runs directly through [main.py](/root/kd-retinanet/main.py) with `teacher: null` and `kd.enabled: false`.
+All first-class experiment configs currently in the repo are:
+
+- [configs/resnet101_teacher_resnet18_student.json](/root/kd-retinanet/configs/resnet101_teacher_resnet18_student.json): KD run with a `resnet101` teacher and `resnet18` student.
+- [configs/resnet101_teacher_resnet50_student.json](/root/kd-retinanet/configs/resnet101_teacher_resnet50_student.json): KD run with a `resnet101` teacher and `resnet50` student. This is also the CLI default if you do not pass `--config`.
+- [configs/resnet50_teacher_resnet18_student.json](/root/kd-retinanet/configs/resnet50_teacher_resnet18_student.json): KD run with a `resnet50` teacher and `resnet18` student.
+- [configs/vanilla_retinanet_resnet18.json](/root/kd-retinanet/configs/vanilla_retinanet_resnet18.json): student-only RetinaNet training with a `resnet18` backbone.
+- [configs/vanilla_retinanet_resnet50.json](/root/kd-retinanet/configs/vanilla_retinanet_resnet50.json): student-only RetinaNet training with a `resnet50` backbone.
+
+The two `vanilla_*` configs run directly through [main.py](/root/kd-retinanet/main.py) with `teacher: null` and `kd.enabled: false`.
+
+### Config naming
+
+The naming convention is:
+
+- `resnet101_teacher_resnet18_student`: KD enabled, explicit teacher and student backbones.
+- `vanilla_retinanet_resnet18`: no teacher branch, student-only RetinaNet baseline.
+
+As a rule of thumb:
+
+- choose a `resnet*_teacher_resnet*_student` config when you want KD
+- choose a `vanilla_retinanet_*` config when you want a plain baseline
+
+### Config structure
 
 It is organized into these sections:
 
@@ -108,6 +136,18 @@ It is organized into these sections:
 - `scheduler`: learning rate scheduler settings
 - `training`: epochs, run name, subset sampling, output directories
 - `evaluation`: evaluation frequency and selected metric
+
+### Current config differences
+
+Most configs share the same overall structure, but a few fields vary materially between experiments:
+
+- `teacher`: `null` for vanilla runs, populated for KD runs.
+- `student.backbone_name`: `resnet18` or `resnet50` depending on the target model.
+- `kd.enabled`: `false` for vanilla runs, enabled for KD runs.
+- `optimizer.lr`: most configs use `1e-4`, while `resnet50_teacher_resnet18_student.json` currently uses `5e-4`.
+- `training.sample_ratio`: most configs use `0.3`, while `resnet50_teacher_resnet18_student.json` currently uses full-data epochs with `1`.
+- `training.resample_each_epoch`: usually `true`, but the full-data config keeps this `false`.
+- `training.run`: determines both the TensorBoard run directory and final checkpoint prefix.
 
 ### Important fields
 
@@ -164,17 +204,33 @@ It is organized into these sections:
 `teacher`
 
 - set to `null` to train only the student model with no teacher branch
+- when enabled, `backbone_name` is typically `resnet50` or `resnet101`
+- `returned_layers` controls which backbone stages feed the teacher FPN
+- `extra_blocks_in_channels` and `extra_blocks_out_channels` control the extra FPN block widths
 
 `kd`
 
 - `enabled`: set to `false` to skip KD loss and train only with detector losses
+- `keys`: feature-map keys used for KD
+- `weights`: per-key KD weights
+- `window_size`: SSIM window size
+- `kd_weight`: global multiplier for the KD loss in the total objective
 
 `student`
 
 - `backbone_name`: `resnet50` or `resnet18`
-- `detector_weights`: only supported with `resnet50`
+- `detector_weights`: only supported with `resnet50`; the current repo configs keep this `null`
 - `backbone_weights`
 - `trainable_backbone_layers`
+
+### Safe config-edit patterns
+
+If you want a new experiment, the safest workflow is:
+
+1. Copy the closest existing config in `configs/`.
+2. Change `training.run` first so logs and checkpoints do not collide with an old run.
+3. Change `teacher`, `student`, and `kd` together so the experiment remains internally consistent.
+4. Use `python main.py --config <file> --print-config` before launching a long run.
 
 ## Common Recipes
 
@@ -237,6 +293,25 @@ python main.py \
   --set teacher=null \
   --set kd.enabled=false \
   --set training.run="student_only"
+```
+
+Launch the vanilla `resnet50` baseline:
+
+```bash
+python main.py --config configs/vanilla_retinanet_resnet50.json
+```
+
+Run the vanilla `resnet50` baseline inside `tmux`:
+
+```bash
+tmux new-session -d -s resnet50 \
+  'cd /root/kd-retinanet && python main.py --config configs/vanilla_retinanet_resnet50.json 2>&1 | tee runs/vanilla_retinanet_resnet50.tmux.log'
+```
+
+Reattach later:
+
+```bash
+tmux attach -t resnet50
 ```
 
 ## Evaluation And TensorBoard

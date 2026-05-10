@@ -1,0 +1,11 @@
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {table}{\numberline {5.1}{\ignorespaces Experiment configurations recovered from the repository \texttt {json} files and saved run records. All runs use AdamW, batch size $6$, $10$ epochs, per-epoch subset sampling with ratio $0.3$, and COCO evaluation every epoch.\relax }}{32}{table.caption.16}%
+\contentsline {table}{\numberline {5.2}{\ignorespaces Approximate detector sizes measured from the implemented models and saved checkpoints in the repository. In distilled training, the deployed model remains the student only, so teacher capacity does not increase inference-time storage.\relax }}{33}{table.caption.17}%
+\contentsline {table}{\numberline {5.3}{\ignorespaces Final COCO validation metrics extracted from the recorded experiment outputs in the repository. All scores are for the student branch evaluated on $5000$ validation images. The proposed compact model, \texttt {ResNet-101} $\rightarrow $ \texttt {ResNet-18} KD, improves on the vanilla \texttt {ResNet-18} baseline across every reported COCO metric while keeping the same deployment-sized student architecture.\relax }}{41}{table.caption.18}%
+\contentsline {table}{\numberline {5.4}{\ignorespaces Epoch-wise validation mAP for the compact baseline and the strongest compact-student distillation run. Values are extracted from the recorded scalar outputs stored in the repository.\relax }}{41}{table.caption.19}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
