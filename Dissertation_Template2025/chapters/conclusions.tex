@@ -1,0 +1,13 @@
+\chapter{Conclusions}
+
+This dissertation has so far established the conceptual and methodological basis for studying knowledge distillation in efficient RetinaNet object detection. The current draft now contains a structured introduction to the problem, a focused literature review, a complete teacher-student architectural description, and a formally defined structural distillation objective operating on FPN features. In that sense, the dissertation has moved beyond a general project idea and now documents a coherent framework that can support reproducible experimentation.
+
+\section{Evaluation}
+
+Against the stated objectives, the work completed so far has already achieved several important milestones. First, it defines a practical RetinaNet distillation framework with interchangeable teacher and student backbones, which creates a consistent basis for controlled comparison. Second, it adapts SSIM-based structural distillation to level-aligned FPN representations and explains why this interface is better suited to the task than direct raw-backbone matching. Third, it provides a dimensional analysis of the teacher and student feature spaces, showing clearly why no additional learned adaptation layer is required after the FPN. Fourth, it specifies the combined loss, the optimization pipeline, and the COCO-style evaluation criteria that will be used to assess the method empirically.
+
+The main limitation of the current stage is that the dissertation does not yet report a full set of quantitative experimental results. As a consequence, the strongest contribution at present is the design and justification of the framework rather than a completed empirical comparison. Even so, the methodological groundwork is now sufficiently detailed to support that next phase rigorously.
+
+\section{Future Work}
+
+The most immediate next step is to run the planned experiments and compare student-only RetinaNet training with teacher-guided training across different backbone combinations, especially heavier teachers paired with compact students such as \texttt{ResNet-18}. It will also be important to perform ablation studies on the choice of pyramid levels, the distillation weight $\lambda$, and the SSIM window size in order to understand which design decisions contribute most to performance gains. A further extension would be to compare the present SSIM-based transfer mechanism with simpler pointwise feature losses and with other detector distillation strategies inspired by methods such as FGD and DeFeat. Finally, once quantitative results are available, the dissertation should be expanded with a dedicated analysis of detection accuracy, scale-specific behaviour, and the trade-off between model efficiency and distilled performance.

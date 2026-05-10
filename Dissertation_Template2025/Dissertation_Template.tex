@@ -1,0 +1,488 @@
+\documentclass[11pt,a4paper,oneside]{report}
+
+\usepackage{graphicx}
+\graphicspath{{./images/}}
+
+\usepackage[tmargin=1in,bmargin=1in,lmargin=1.38in,rmargin=0.79in]{geometry}
+
+\usepackage{times}
+\usepackage{epsfig}
+\usepackage{fancyhdr}
+\usepackage{longtable}
+\usepackage{subfig}
+\usepackage{color}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
+\usepackage{psfrag}
+\usepackage{url}
+\usepackage[linktocpage]{hyperref}
+
+\usepackage[square,numbers]{natbib}
+
+\definecolor{ashgrey}{rgb}{0.7, 0.75, 0.71}
+
+\usepackage{setspace}
+\usepackage{multicol}
+\usepackage{paralist}
+\usepackage{floatrow}
+
+%\setlength{\parindent}{0pt}
+\setlength{\parskip}{\baselineskip}
+\floatsetup[table]{capposition=top}
+
+\usepackage{titlesec}
+\titleformat{\chapter}[block]
+{\fontsize{12}{15}\bfseries}
+{\thechapter}
+{1em}
+{\MakeUppercase}
+\titlespacing*{\chapter}{0pt}{1pt}{0pt}[0pt]
+
+\titleformat{\section}[block]
+{\fontsize{12}{15}\bfseries}
+{\thesection}
+{1em}
+{}
+\titlespacing*{\section}{0pt}{0pt}{-12pt}[0pt]
+
+\titleformat{\subsection}[block]
+{\fontsize{12}{15}\bfseries}
+{\thesubsection}
+{1em}
+{}
+\titlespacing*{\subsection}{0pt}{0pt}{-12pt}[0pt]
+
+\titleformat{\subsubsection}[block]
+{\fontsize{12}{15}}
+{\thesubsubsection}
+{1em}
+{}
+\titlespacing*{\subsubsection}{0pt}{0pt}{-12pt}[0pt]
+
+\newcommand{\squeezeup}{\vspace{-2.5mm}}
+\clubpenalty = 10000
+\widowpenalty = 10000
+
+\newcommand{\thesistitle}{Knowledge Distillation with Hierarchical Structural Features for Efficient Object Detection}
+\newcommand{\thesisauthor}{Yanshu Zhao}
+\newcommand{\thesisprogramme}{Master of Science Dissertation}
+\newcommand{\thesisdate}{May 2026}
+\newcommand{\thesisyear}{2026}
+\newcommand{\thesissupervisor}{Dr. Xiatian Zhu}
+
+\newcommand{\ArchitectureFigure}[2]{
+\begin{figure}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    >=Latex,
+    line width=0.9pt,
+    node distance=8mm and 10mm,
+    input/.style={draw, rounded corners=2pt, fill=gray!12, minimum width=28mm, minimum height=10mm, align=center},
+    teacher/.style={draw, rounded corners=2pt, fill=blue!12, minimum width=36mm, minimum height=10mm, align=center},
+    student/.style={draw, rounded corners=2pt, fill=green!12, minimum width=36mm, minimum height=10mm, align=center},
+    feature/.style={draw, rounded corners=2pt, fill=orange!18, minimum width=34mm, minimum height=10mm, align=center},
+    loss/.style={draw, rounded corners=2pt, fill=red!12, minimum width=30mm, minimum height=10mm, align=center},
+    note/.style={font=\scriptsize, align=center}
+]
+\node[input] (image) {Input image batch $x$};
+
+\node[teacher, right=15mm of image, yshift=16mm] (teacherbb) {Frozen teacher\\ResNet-101/50 + FPN};
+\node[student, right=15mm of image, yshift=-16mm] (studentbb) {Trainable student\\ResNet-18/50 + FPN};
+\draw[->] (image.east) |- (teacherbb.west);
+\draw[->] (image.east) |- (studentbb.west);
+
+\node[feature, right=12mm of teacherbb] (tfeat) {Teacher FPN features\\$F_t^{(l)},\ l \in \mathcal{P}$};
+\node[feature, right=12mm of studentbb] (sfeat) {Student FPN features\\$F_s^{(l)},\ l \in \mathcal{P}$};
+\draw[->] (teacherbb) -- (tfeat);
+\draw[->] (studentbb) -- (sfeat);
+
+\node[student, below=10mm of sfeat] (head) {RetinaNet head\\classification + box regression};
+\draw[->] (sfeat) -- (head);
+
+\node[loss, right=18mm of tfeat, yshift=-14mm] (kd) {Channel normalization\\channel average + SSIM\\$\mathcal{L}_{kd}$};
+\draw[->] (tfeat.east) -- ++(7mm,0) |- node[pos=0.28, above, font=\scriptsize] {teacher target} (kd.north);
+\draw[->] (sfeat.east) -- ++(7mm,0) |- node[pos=0.28, below, font=\scriptsize] {resize if needed} (kd.south);
+
+\node[loss, right=18mm of head] (det) {Detection loss\\$\mathcal{L}_{det}$};
+\draw[->] (head) -- (det);
+
+\node[loss, right=18mm of kd, yshift=-14mm] (total) {Student objective\\$\mathcal{L}_{det} + \lambda \mathcal{L}_{kd}$};
+\draw[->] (kd) -- (total);
+\draw[->] (det.east) -- ++(8mm,0) |- (total.south);
+
+\node[note, below=5mm of total] {Backpropagation updates only the student branch during training.};
+\end{tikzpicture}%
+}
+\caption{#1}
+\label{#2}
+\end{figure}
+}
+
+\newcommand{\DeepDetectionFigure}{
+\begin{figure}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\normalsize,
+    >=Latex,
+    line width=0.9pt,
+    base/.style={draw, rounded corners=2pt, fill=gray!12, minimum width=29mm, minimum height=10mm, align=center},
+    stage/.style={draw, rounded corners=2pt, fill=blue!12, minimum width=30mm, minimum height=10mm, align=center},
+    output/.style={draw, rounded corners=2pt, fill=orange!16, minimum width=34mm, minimum height=10mm, align=center},
+    family/.style={draw, rounded corners=2pt, fill=green!10, minimum width=36mm, minimum height=10mm, align=center}
+]
+\node[base] (image) at (0,0) {Input image};
+\node[base] (backbone) at (3.4,0) {Shared backbone\\features};
+\draw[->] (image) -- (backbone);
+
+\coordinate (split) at (5.0,0);
+\draw[->] (backbone.east) -- (split);
+\draw (split) -- ++(0,1.8) coordinate (splitTop);
+\draw (split) -- ++(0,-1.8) coordinate (splitBot);
+
+\node[stage] (twostagea) at (7.1,1.8) {Region proposals};
+\node[output] (twostageb) at (10.2,1.8) {RoI classify\\+ box refine};
+\node[family] (twostagenote) at (13.8,1.8) {Two-stage detection\\Faster R-CNN, Cascade R-CNN};
+\draw[->] (splitTop) -- (twostagea.west);
+\draw[->] (twostagea) -- (twostageb);
+\draw[->] (twostageb) -- (twostagenote);
+
+\node[stage] (onestagea) at (7.1,0) {FPN or dense\\feature maps};
+\node[output] (onestageb) at (10.2,0) {Dense class\\+ box outputs};
+\node[family] (onestagenote) at (13.8,0) {One-stage detection\\SSD, RetinaNet};
+\draw[->] (split) -- (onestagea.west);
+\draw[->] (onestagea) -- (onestageb);
+\draw[->] (onestageb) -- (onestagenote);
+
+\node[stage] (seta) at (7.1,-1.8) {Encoder-decoder\\or object queries};
+\node[output] (setb) at (10.2,-1.8) {Matched set\\predictions};
+\node[family] (setnote) at (13.8,-1.8) {Set-prediction detection\\DETR-style models};
+\draw[->] (splitBot) -- (seta.west);
+\draw[->] (seta) -- (setb);
+\draw[->] (setb) -- (setnote);
+\end{tikzpicture}%
+}
+\caption{Author's schematic summary of the main deep detection paradigms reviewed in this chapter, based on proposal-based detectors, dense one-stage detectors, and set-prediction transformers \cite{ren2015faster,cai2021cascade,liu2016ssd,lin2017fpn,lin2017focal,carion2020detr}.}
+\label{fig:theory-deep-detection}
+\end{figure}
+}
+
+\newcommand{\IoUFigure}{
+\begin{figure}[t]
+\centering
+\resizebox{0.96\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\normalsize,
+    >=Latex,
+    line width=0.9pt,
+    overlapbox/.style={draw=violet!85!black, fill=violet!35, fill opacity=0.18, text opacity=1, minimum width=22mm, minimum height=22mm, align=center},
+    comparebox/.style={draw=blue!80!black, fill=blue!35, fill opacity=0.16, text opacity=1, minimum width=22mm, minimum height=22mm, align=center},
+    explabel/.style={font=\large, text=black!70},
+    unionfill/.style={fill=violet!45, fill opacity=0.45, draw=violet!85!black}
+]
+\fill[rounded corners=7pt, gray!10] (-0.6,-3.2) rectangle (15.7,4.4);
+
+\node[anchor=west, text=black!70, font=\fontsize{18}{20}\selectfont\itshape] at (1.1,1.2) {IoU =};
+\node[anchor=west, explabel] (overlaptext) at (3.4,1.55) {Area of Overlap};
+\draw[black!20, line width=0.7pt] (3.2,1.15) -- (8.0,1.15);
+\node[anchor=west, explabel] (uniontext) at (3.4,0.05) {Area of Union};
+\draw[black!20, line width=0.7pt] (3.2,-0.35) -- (8.0,-0.35);
+
+\node[overlapbox, anchor=center] (abox) at (11.2,2.75) {};
+\node[comparebox, anchor=center] (bbox) at (11.9,2.1) {};
+\node[anchor=north west, font=\large, text=black!65] at (10.55,3.55) {A};
+\node[anchor=south east, font=\large, text=black!65] at (12.8,1.0) {B};
+\node[font=\large, text=white] at (11.55,2.42) {A$\cap$B};
+
+\draw[rounded corners=3pt, black!30, ->] (8.15,1.35) -- (9.7,1.35) -- (9.7,2.4);
+\draw[rounded corners=3pt, black!30, ->] (8.15,-0.15) -- (9.25,-0.15) -- (9.25,-2.0) -- (10.15,-2.0);
+
+\begin{scope}[shift={(10.3,-2.3)}]
+  \fill[unionfill] (0,0) -- (1.3,0) -- (1.3,-0.7) -- (2.4,-0.7) -- (2.4,-2.6) -- (0.9,-2.6) -- (0.9,-1.8) -- (0,-1.8) -- cycle;
+  \draw[violet!85!black] (0,0) -- (1.3,0) -- (1.3,-0.7) -- (2.4,-0.7) -- (2.4,-2.6) -- (0.9,-2.6) -- (0.9,-1.8) -- (0,-1.8) -- cycle;
+  \node[font=\large, text=white] at (1.15,-1.25) {A$\cup$B};
+\end{scope}
+\end{tikzpicture}%
+}
+\caption{Geometric interpretation of Intersection over Union: the numerator measures the shared overlap between two boxes, while the denominator measures the total union area covered by either box.}
+\label{fig:theory-iou}
+\end{figure}
+}
+
+\newcommand{\KDPrimerFigure}{
+\begin{figure}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\normalsize,
+    >=Latex,
+    line width=0.9pt,
+    data/.style={draw, rounded corners=2pt, fill=gray!12, minimum width=22mm, minimum height=12mm, align=center},
+    teach/.style={draw, rounded corners=2pt, fill=blue!18, minimum width=14mm, minimum height=34mm},
+    stud/.style={draw, rounded corners=2pt, fill=blue!22, minimum width=14mm, minimum height=24mm},
+    note/.style={draw, rounded corners=2pt, minimum width=29mm, minimum height=9mm, align=center},
+    soft/.style={note, fill=orange!18},
+    hard/.style={note, fill=green!18},
+    loss/.style={draw, rounded corners=2pt, fill=violet!12, minimum width=28mm, minimum height=9mm, align=center}
+]
+\node[data] (data) at (0,0) {Training data};
+
+\foreach \x/\y in {-0.35/0.18, -0.12/0.06, 0.12/-0.06, 0.35/-0.18} {
+  \draw[fill=green!8, draw=black!20] ($(data.west)+(-1.9+\x,0.15+\y)$) rectangle ++(1.2,1.6);
+}
+
+\node[anchor=south] at (4.3,2.45) {\textit{Teacher}};
+\node[teach] (t1) at (4.1,0.9) {};
+\node[teach] (t2) at (4.45,0.9) {};
+\node[teach] (t3) at (4.8,0.9) {};
+\node[teach] (t4) at (5.15,0.9) {};
+\node[teach] (t5) at (5.5,0.9) {};
+\node[teach, minimum height=30mm] (t6) at (5.85,0.9) {};
+\node[teach, minimum height=26mm] (t7) at (6.2,0.9) {};
+\node[teach, minimum height=22mm] (t8) at (6.55,0.9) {};
+\node[teach, minimum height=18mm] (t9) at (6.9,0.9) {};
+\node at (5.2,0.9) {pre-trained};
+
+\node[anchor=north] at (4.5,-2.35) {\textit{Student}};
+\node[stud] (s1) at (4.25,-1.0) {};
+\node[stud] (s2) at (4.6,-1.0) {};
+\node[stud] (s3) at (4.95,-1.0) {};
+\node[stud] (s4) at (5.3,-1.0) {};
+\node[stud, minimum height=20mm] (s5) at (5.65,-1.0) {};
+\node[stud, minimum height=16mm] (s6) at (6.0,-1.0) {};
+\node at (5.15,-1.0) {to be trained};
+
+\draw[->] (data.east) -- ++(1.0,0) |- (t1.west);
+\draw[->] (data.east) -- ++(1.0,0) |- (s1.west);
+
+\node[soft] (soft) at (9.0,1.55) {soft labels\\predictions};
+\node[hard] (hard) at (9.0,-1.25) {hard labels\\true label};
+\node[soft] (pred) at (7.9,-0.35) {predictions};
+\node[loss] (distill) at (9.25,0.4) {distilled knowledge};
+
+\draw[->] (t9.east) -- (soft.west);
+\draw[->] (s6.east) -- (pred.west);
+\draw[->] (soft.south) -- (distill.north);
+\draw[->] (distill.west) -- ++(-0.8,0) |- (pred.north);
+\draw[->] (hard.west) -- (pred.east);
+\end{tikzpicture}%
+}
+\caption{Author's redrawn teacher-student overview of knowledge distillation, adapted from Varshney's explanatory primer on knowledge distillation in NLP \cite{varshney2021kdprimer}.}
+\label{fig:theory-kd-primer}
+\end{figure}
+}
+
+\newcommand{\KnowledgeDistillationFigure}{
+\begin{figure}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\normalsize,
+    >=Latex,
+    line width=0.9pt,
+    model/.style={draw, rounded corners=2pt, minimum width=34mm, minimum height=11mm, align=center},
+    teacher/.style={model, fill=blue!12},
+    student/.style={model, fill=green!12},
+    signal/.style={draw, rounded corners=2pt, fill=orange!16, minimum width=37mm, minimum height=10mm, align=center},
+    loss/.style={draw, rounded corners=2pt, fill=red!12, minimum width=36mm, minimum height=10mm, align=center}
+]
+\node[signal] (input) at (0,0) {Input batch $x$};
+\node[teacher] (teacher) at (4.2,1.8) {Teacher network\\frozen parameters};
+\node[student] (student) at (4.2,-1.8) {Student network\\trainable parameters};
+\draw[->] (input.east) |- (teacher.west);
+\draw[->] (input.east) |- (student.west);
+
+\node[signal] (logits) at (8.5,2.7) {Logit KD\\soft logits or probabilities};
+\node[signal] (features) at (8.5,1.0) {Feature KD\\intermediate features or hints};
+\node[signal] (relations) at (8.5,-0.7) {Relational or structural KD\\similarities and cross-layer paths};
+\draw[->] (teacher.east) -- ++(0.8,0) |- (logits.west);
+\draw[->] (teacher.east) -- ++(0.8,0) |- (features.west);
+\draw[->] (teacher.east) -- ++(0.8,0) |- (relations.west);
+
+\node[loss] (objective) at (12.8,-1.1) {Student objective\\$\mathcal{L}_{sup} + \lambda \mathcal{L}_{KD}$};
+\draw[->] (student) -- (objective);
+\draw[->] (logits.east) -- ++(0.8,0) |- (objective.north);
+\draw[->] (features.east) -- ++(0.8,0) |- (objective.north);
+\draw[->] (relations.east) -- ++(0.8,0) |- (objective.north);
+
+\node[signal] (labels) at (12.8,-3.1) {Ground-truth labels};
+\draw[->] (labels) -- (objective);
+\end{tikzpicture}%
+}
+\caption{Author's schematic view of the common knowledge-distillation pathways discussed in the literature, including logit, feature, cross-layer, and relational transfer \cite{hinton2015distilling,romero2015fitnets,zagoruyko2017paying,yim2017fsp,park2019rkd,chen2021semckd}.}
+\label{fig:theory-kd}
+\end{figure}
+}
+
+\newcommand{\DetectionKDFigure}{
+\begin{figure}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\normalsize,
+    >=Latex,
+    line width=0.9pt,
+    node distance=9mm and 10mm,
+    colhead/.style={draw, rounded corners=2pt, fill=gray!15, minimum width=35mm, minimum height=10mm, align=center},
+    leftcell/.style={draw, rounded corners=2pt, fill=blue!10, minimum width=35mm, minimum height=11mm, align=center},
+    midcell/.style={draw, rounded corners=2pt, fill=orange!16, minimum width=46mm, minimum height=11mm, align=center},
+    rightcell/.style={draw, rounded corners=2pt, fill=green!10, minimum width=46mm, minimum height=11mm, align=center}
+]
+\node[colhead] (c1) {Where detector KD acts};
+\node[colhead, right=8mm of c1] (c2) {Transferred signal};
+\node[colhead, right=8mm of c2] (c3) {Representative methods};
+
+\node[leftcell, below=7mm of c1] (r1a) {Backbone / neck\\feature maps};
+\node[midcell, right=8mm of r1a] (r1b) {Feature imitation, attention,\\foreground emphasis};
+\node[rightcell, right=8mm of r1b] (r1c) {Fine-grained imitation, FGD, DeFeat};
+
+\node[leftcell, below=5mm of r1a] (r2a) {Anchors, regions,\\or instances};
+\node[midcell, right=8mm of r2a] (r2b) {Instance-conditioned and\\proposal-aware transfer};
+\node[rightcell, right=8mm of r2b] (r2c) {GID, ICD, feature richness};
+
+\node[leftcell, below=5mm of r2a] (r3a) {Detector heads\\and outputs};
+\node[midcell, right=8mm of r3a] (r3b) {Class scores, box regression,\\rank consistency};
+\node[rightcell, right=8mm of r3b] (r3c) {Prediction-guided imitation\\and rank mimicking};
+
+\node[leftcell, below=5mm of r3a] (r4a) {Pyramid-level\\structure};
+\node[midcell, right=8mm of r4a] (r4b) {Local spatial organization\\and SSIM similarity};
+\node[rightcell, right=8mm of r4b] (r4c) {Structural KD for detector\\feature spaces};
+\end{tikzpicture}%
+}
+\caption{Author's schematic taxonomy of detector-specific distillation signals, summarizing the main routes emphasized by the object-detection KD literature \cite{wang2019distilling,dai2021gid,guo2021defeat,kang2021icd,du2021frs,li2022rank,yang2022focal,derijk2022structural}.}
+\label{fig:theory-detection-kd}
+\end{figure}
+}
+
+\newcommand{\SSIMDistillationFigure}{
+\begin{figure}[t]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\normalsize,
+    >=Latex,
+    line width=0.9pt,
+    feat/.style={draw, rounded corners=2pt, fill=blue!12, minimum width=30mm, minimum height=10mm, align=center},
+    proc/.style={draw, rounded corners=2pt, fill=orange!16, minimum width=34mm, minimum height=10mm, align=center},
+    term/.style={draw, rounded corners=2pt, fill=green!12, minimum width=29mm, minimum height=10mm, align=center},
+    loss/.style={draw, rounded corners=2pt, fill=red!12, minimum width=34mm, minimum height=10mm, align=center}
+]
+\node[feat] (teacher) at (0,1.5) {Teacher FPN level\\$F_t^{(l)}$};
+\node[feat] (student) at (0,-1.5) {Student FPN level\\$F_s^{(l)}$};
+
+\node[proc] (tmap) at (3.7,1.5) {Channel reduction\\and normalization};
+\node[proc] (smap) at (3.7,-1.5) {Channel reduction\\and normalization};
+\draw[->] (teacher) -- (tmap);
+\draw[->] (student) -- (smap);
+
+\node[proc] (pair) at (7.7,0) {Paired local-window\\statistics};
+\draw[->] (tmap.east) -- (pair.west);
+\draw[->] (smap.east) -- (pair.west);
+
+\node[term] (lum) at (11.0,1.8) {Luminance\\$\mu_t,\mu_s$};
+\node[term] (con) at (11.0,0) {Contrast\\$\sigma_t,\sigma_s$};
+\node[term] (str) at (11.0,-1.8) {Structure\\$\sigma_{ts}$};
+\draw[->] (pair.east) -- ++(0.7,0) |- (lum.west);
+\draw[->] (pair.east) -- (con.west);
+\draw[->] (pair.east) -- ++(0.7,0) |- (str.west);
+
+\node[loss] (ssim) at (14.4,0.8) {Windowed SSIM\\at level $l$};
+\node[loss] (total) at (14.4,-1.4) {Average over FPN levels\\$\mathcal{L}_{SSIM}$};
+\draw[->] (lum) -- (ssim);
+\draw[->] (con) -- (ssim);
+\draw[->] (str) -- (ssim);
+\draw[->] (ssim) -- (total);
+\end{tikzpicture}%
+}
+\caption{Author's schematic of SSIM-based distillation over aligned FPN features, following the structural-similarity decomposition of luminance, contrast, and structure and its adaptation to detector feature matching \cite{wang2004ssim,wang2003msssim,derijk2022structural}.}
+\label{fig:theory-ssim}
+\end{figure}
+}
+
+\usepackage{style/myfootnote}
+\makesavenoteenv{longtable}
+\usepackage{vmargin}
+\input{./style/epsf.sty}
+\input{./parameters/param}
+
+\begin{document}
+\normalsize
+\rhead{\textcolor{ashgrey}{\thesisauthor, MSc dissertation}}
+\renewcommand{\headrulewidth}{0pt}
+
+\begin{center}
+{\LARGE {\vspace*{0.5cm}\Huge\bf \thesistitle}}
+
+\vspace{3em}
+{\Large \bf \thesisauthor}\\
+\vspace{2em}
+{\Large\textit{\thesisprogramme}\\
+submitted to the\\
+University of Surrey\\
+\vspace{2em}
+\centering
+\includegraphics[width=0.6\textwidth]{logo.png}\\
+\vspace{2em}
+\textit{School of Computer Science and Electrical and Electronic Engineering}\\
+Faculty of Engineering and Physical Sciences\\
+University of Surrey\\
+Guildford, Surrey, GU2 7XH, UK\\
+\vspace{2em}
+\thesisdate\\
+Supervised by: \thesissupervisor\\
+\vspace{\stretch{1}}}
+\textcopyright \thesisauthor\ \thesisyear
+\end{center}
+\pagenumbering{roman}
+
+\clearpage
+\newpage
+\addcontentsline{toc}{chapter}{Declaration of Originality}
+\input{chapters/declaration}
+
+\clearpage
+\newpage
+\addcontentsline{toc}{chapter}{Word Count}
+\input{chapters/wordcount}
+
+\clearpage
+\addcontentsline{toc}{chapter}{Abstract}
+\input{chapters/abstract}
+
+\begin{spacing}{0.1}
+\tableofcontents
+\end{spacing}
+
+\clearpage
+\addcontentsline{toc}{chapter}{List of figures}
+\begin{spacing}{1.4}
+\listoffigures
+\end{spacing}
+
+\newpage
+\pagenumbering{arabic}
+
+\pagestyle{fancyplain}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\include{./chapters/introduction}
+\include{./chapters/theory}
+\include{./chapters/technical}
+\include{./chapters/technical2}
+\include{./chapters/conclusions}
+
+\addcontentsline{toc}{chapter}{Bibliography}
+\bibliographystyle{./style/myabbrvnat}
+\bibliography{./references/thesisbib}
+
+\clearpage
+\addcontentsline{toc}{chapter}{Appendix}
+\include{./appendices/appendix}
+
+\end{document}

@@ -1,0 +1,13 @@
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {1.1}{\ignorespaces Overview of the teacher-student RetinaNet distillation architecture used throughout this dissertation.\relax }}{2}{figure.caption.6}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {2.1}{\ignorespaces Object detection task illustration reproduced from a Wikimedia Commons image by MTheiler (CC BY-SA 4.0) \cite {mtheiler2019yolo}.\relax }}{7}{figure.caption.7}%
+\contentsline {figure}{\numberline {2.2}{\ignorespaces Geometric interpretation of Intersection over Union: the numerator measures the shared overlap between two boxes, while the denominator measures the total union area covered by either box.\relax }}{9}{figure.caption.8}%
+\contentsline {figure}{\numberline {2.3}{\ignorespaces Knowledge distillation schematic reproduced from Varshney's primer on knowledge distillation in NLP \cite {varshney2021kdprimer}.\relax }}{11}{figure.caption.9}%
+\contentsline {figure}{\numberline {2.4}{\ignorespaces Author's schematic view of the common knowledge-distillation pathways discussed in the literature, including logit, feature, cross-layer, and relational transfer \cite {hinton2015distilling,romero2015fitnets,zagoruyko2017paying,yim2017fsp,park2019rkd,chen2021semckd}.\relax }}{12}{figure.caption.10}%
+\contentsline {figure}{\numberline {2.5}{\ignorespaces Author's schematic taxonomy of detector-specific distillation signals, summarizing the main routes emphasized by the object-detection KD literature \cite {wang2019distilling,dai2021gid,guo2021defeat,kang2021icd,du2021frs,li2022rank,yang2022focal,derijk2022structural}.\relax }}{15}{figure.caption.11}%
+\contentsline {figure}{\numberline {2.6}{\ignorespaces Author's schematic of SSIM-based distillation over aligned FPN features, following the structural-similarity decomposition of luminance, contrast, and structure and its adaptation to detector feature matching \cite {wang2004ssim,wang2003msssim,derijk2022structural}.\relax }}{16}{figure.caption.12}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {3.1}{\ignorespaces Architecture of the proposed method. The same transformed input is processed by a frozen teacher and a trainable student, while SSIM-based feature distillation complements the standard RetinaNet detection loss.\relax }}{19}{figure.caption.13}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }

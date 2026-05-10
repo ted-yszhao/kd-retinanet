@@ -1,0 +1,38 @@
+\chapter{Methodology}
+
+This chapter introduces the proposed RetinaNet knowledge distillation framework. It first formalizes the training objective, then describes the teacher-student architecture, and finally explains the feature dimensionality choices that make direct structural distillation possible without an additional adaptation layer.
+
+\section{Overview of the Distillation Framework}
+
+Let a teacher detector $T$ and a student detector $S$ operate on an input image $x$ with ground-truth annotations $y$. Both models follow the RetinaNet detection framework, but they may use different ResNet backbones. The goal is to train the student so that it maintains the inference efficiency of a compact detector while recovering part of the representational strength of a larger teacher. During training, the teacher is frozen and serves only as a source of supervisory signals. During inference, only the student is used.
+
+The student is trained with two objectives: the native RetinaNet detection loss and a feature distillation loss. Denoting the student detection loss by $\mathcal{L}_{det}$ and the distillation loss by $\mathcal{L}_{kd}$, the total objective is
+\begin{equation}
+  \mathcal{L} = \mathcal{L}_{det} + \lambda \mathcal{L}_{kd},
+  \label{eq:total-loss}
+\end{equation}
+where $\lambda$ is a scalar hyperparameter controlling the contribution of distillation. In the implementation used in this project, $\lambda=0.5$ by default.
+
+\section{Teacher and Student Architecture}
+
+Both teacher and student are instantiated as RetinaNet detectors implemented with \texttt{torchvision}. The teacher uses a ResNet-FPN backbone constructed through \texttt{resnet\_fpn\_backbone}, while the student uses either the standard \texttt{retinanet\_resnet50\_fpn} shortcut or a custom RetinaNet built from a lighter ResNet-FPN backbone. This design allows controlled experiments in which the detector head and training framework remain fixed while backbone capacity changes.
+
+\ArchitectureFigure{Architecture of the proposed method. The same transformed input is processed by a frozen teacher and a trainable student, while SSIM-based feature distillation complements the standard RetinaNet detection loss.}{fig:architecture-method}
+
+The teacher branch is configured with a stronger backbone such as \texttt{ResNet-101}, and its parameters are frozen throughout training. The student branch is fully trainable and optimized with backpropagation. Since both models expose pyramid features through the FPN backbone, the framework naturally supports feature-level supervision at selected pyramid levels. In the current implementation, pyramid features are extracted after the input images are processed by RetinaNet's internal transform and backbone modules. If the backbone returns an ordered dictionary of feature maps, those maps are used directly as distillation targets. This choice is important because it defines the interface at which teacher and student are compared: the distillation signal is applied to FPN outputs rather than to raw backbone stages or final detection logits.
+
+\section{Dimensionality and Feature Alignment}
+
+Let the transformed and padded image batch entering the detector be denoted by
+\begin{equation}
+  x' \in \mathbb{R}^{B \times 3 \times H \times W},
+\end{equation}
+where $B$ is the batch size and $H \times W$ is the spatial size after RetinaNet preprocessing. Before the FPN, the teacher and student backbones need not have matching internal dimensionality. A bottleneck backbone such as \texttt{ResNet-50} or \texttt{ResNet-101} produces deeper late-stage tensors than a basic-block backbone such as \texttt{ResNet-18}. In practical terms, if one considers the common high-level backbone stages $C3$, $C4$, and $C5$, a bottleneck network exposes channel widths of approximately $(512,1024,2048)$, whereas a lighter \texttt{ResNet-18} exposes approximately $(128,256,512)$. For this reason, direct feature matching on raw backbone outputs would generally require an explicit projection layer, typically a learned $1 \times 1$ convolution, to align student and teacher channels before a loss could be computed reliably.
+
+The proposed method avoids this mismatch by distilling after the FPN rather than before it. The FPN already serves as a built-in dimensionality unifier: each selected backbone stage is projected into a common feature width and fused into a pyramid representation with fixed channel dimension. As a result, for every selected pyramid level $l \in \mathcal{P}$,
+\begin{equation}
+  F_s^{(l)},\; F_t^{(l)} \in \mathbb{R}^{B \times C \times H_l \times W_l},
+\end{equation}
+with a shared pyramid width $C=256$ in the standard RetinaNet configuration. The spatial dimensions $H_l$ and $W_l$ depend on the pyramid level rather than on the backbone identity. For the usual RetinaNet levels $P3$ through $P7$, the corresponding strides with respect to the transformed input are $8,16,32,64$, and $128$ pixels, so the feature resolutions decrease systematically as depth increases.
+
+This post-FPN alignment is the main reason no additional adaptation layer is needed between student and teacher features in the present design. The teacher and student already expose tensors with the same semantic role and the same channel dimensionality at each aligned pyramid level. Therefore, the distillation loss can compare level-matched features directly. When a small spatial discrepancy remains because of implementation details or image padding, simple bilinear interpolation is sufficient to align $H_l$ and $W_l$ before computing the loss. No learned adapter is required because the mismatch is not one of feature width or representation type, but only of sampling resolution. Avoiding a trainable adaptation layer also keeps the distillation path lightweight, prevents extra parameters from absorbing part of the knowledge transfer, and makes the empirical comparison with student-only training easier to interpret.

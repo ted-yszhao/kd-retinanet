@@ -1,0 +1,54 @@
+\chapter{Training and Evaluation Framework}
+
+This chapter details how the proposed RetinaNet distillation method is optimized in practice. It describes the standard detection objective, the extraction and alignment of FPN features, the SSIM-based structural loss, and the evaluation protocol that will be used for later experiments.
+
+\section{RetinaNet Detection Loss}
+
+RetinaNet combines classification and box regression losses over dense anchors \cite{lin2017focal}. The classification branch uses focal loss to address the extreme imbalance between background and object anchors. The regression branch predicts bounding-box offsets for positive anchors. In the implementation, the student model returns a dictionary of detection losses, and these terms are summed to form
+\begin{equation}
+\mathcal{L}_{det} = \mathcal{L}_{cls} + \mathcal{L}_{box},
+\end{equation}
+where $\mathcal{L}_{cls}$ denotes the focal classification loss and $\mathcal{L}_{box}$ denotes the bounding-box regression loss. This detector objective is identical to standard RetinaNet training and ensures that distillation acts as an auxiliary training signal rather than replacing the detection task.
+
+\section{FPN Feature Extraction}
+
+For an image batch, the teacher and student each produce a set of FPN features
+\begin{equation}
+\{F_s^{(l)}\}_{l \in \mathcal{P}}, \qquad \{F_t^{(l)}\}_{l \in \mathcal{P}},
+\end{equation}
+where $\mathcal{P}$ indexes the selected pyramid levels and each feature tensor has shape $B \times 256 \times H_l \times W_l$ after FPN projection. The implementation currently allows distillation on a configurable subset of feature keys, with a default choice focusing on one intermediate pyramid level. Because the comparison is performed after the FPN, the channel dimension is already matched across teacher and student; only the spatial dimensions may occasionally need alignment. When teacher and student produce feature maps with different spatial sizes at the selected level, the student feature is resized by bilinear interpolation to match the teacher resolution before computing the distillation loss.
+
+\section{SSIM-Based Feature Distillation}
+
+The key contribution of the method is a multi-scale structural similarity loss applied to FPN feature maps. For each selected pyramid level $l$, the teacher feature $F_t^{(l)}$ and student feature $F_s^{(l)}$ are first normalized channel-wise using their spatial mean and standard deviation:
+\begin{equation}
+\hat{F}^{(l)} = \frac{F^{(l)} - \mu(F^{(l)})}{\sigma(F^{(l)}) + \epsilon},
+\end{equation}
+where $\mu(\cdot)$ and $\sigma(\cdot)$ are computed over the spatial dimensions and $\epsilon$ is a small constant for numerical stability.
+
+After normalization, the feature maps are averaged across channels to obtain a single structural response map per pyramid level:
+\begin{equation}
+A_s^{(l)} = \frac{1}{C}\sum_{c=1}^{C}\hat{F}_{s,c}^{(l)}, \qquad
+A_t^{(l)} = \frac{1}{C}\sum_{c=1}^{C}\hat{F}_{t,c}^{(l)}.
+\end{equation}
+Consequently, the SSIM comparison is applied to response maps in $\mathbb{R}^{B \times 1 \times H_l \times W_l}$ rather than to the full channel stack. This step reduces sensitivity to channel-wise scale variation and focuses the comparison on shared spatial organization.
+
+The distillation term is then defined as a weighted sum of SSIM losses across the selected pyramid levels:
+\begin{equation}
+\mathcal{L}_{kd} = \sum_{l \in \mathcal{P}} \alpha_l \, \mathcal{L}_{SSIM}\left(A_s^{(l)}, A_t^{(l)}\right),
+\end{equation}
+where $\alpha_l$ is the user-defined weight for pyramid level $l$. In practice, the implementation uses the SSIM loss provided by Kornia with a configurable window size, set to $7$ by default. The use of SSIM encourages the student to match teacher feature structure in terms of local intensity patterns, contrast relationships, and spatial correlation. This differs from standard $\ell_1$ or $\ell_2$ matching, which penalize activation differences pointwise and may ignore higher-order local organization.
+
+\section{Training Procedure}
+
+Training proceeds as follows. For each minibatch, the student performs a standard forward pass with detection targets to obtain RetinaNet losses. The teacher then processes the same images in evaluation mode without gradient tracking to produce feature targets. Student FPN features are extracted from the same transformed inputs, the SSIM-based distillation loss is computed, and the combined loss in Eq.~(\ref{eq:total-loss}) is backpropagated only through the student. This keeps optimization efficient and ensures that the teacher remains fixed.
+
+The framework supports both distillation training and student-only training through configuration. When knowledge distillation is disabled, the system reduces to ordinary RetinaNet optimization. When distillation is enabled, the optimizer is applied only to the trainable student parameters. The current implementation supports AdamW and SGD, periodic COCO evaluation, TensorBoard logging, and per-epoch subset sampling. Subset sampling is useful for controlled experiments because it reduces computational cost while preserving the same training code path across runs.
+
+\section{Evaluation Protocol}
+
+Evaluation is conducted with COCO-style metrics using \texttt{pycocotools}, including overall bounding-box mean Average Precision (mAP), mAP at IoU thresholds $0.50$ and $0.75$, and scale-specific scores for small, medium, and large objects \cite{lin2014coco}. During evaluation, the framework can report either teacher or student performance, but the primary dissertation setting focuses on the student branch because the teacher is only a training-time aid. Comparisons should therefore be made between a student trained from scratch and the same student trained with teacher-guided feature distillation.
+
+\section{Summary}
+
+Taken together, Chapters 3 and 4 define a complete distillation pipeline for RetinaNet. The method specifies where teacher supervision enters the detector, how features are aligned, how structural similarity is measured, and how the resulting student should later be evaluated under standard object detection metrics.

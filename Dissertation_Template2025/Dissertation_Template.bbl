@@ -1,0 +1,458 @@
+\begin{thebibliography}{59}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Ahn et~al.(2019)Ahn, Hu, Damianou, Lawrence, and Dai]{ahn2019vid}
+Ahn, S. , Hu, S.~X. , Damianou, A. , Lawrence, N.~D. , and Dai, Z. .
+\newblock Variational information distillation for knowledge transfer.
+\newblock In \emph{IEEE Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, 2019.
+\newblock URL \url{https://arxiv.org/abs/1904.05835}.
+
+\bibitem[Ba and Caruana(2014)]{ba2014deep}
+Ba, J.~L.  and Caruana, R. .
+\newblock Do deep nets really need to be deep?
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~27, 2014.
+\newblock URL \url{https://arxiv.org/abs/1312.6184}.
+
+\bibitem[Bodla et~al.(2017)Bodla, Singh, Chellappa, and
+  Davis]{bodla2017softnms}
+Bodla, N. , Singh, B. , Chellappa, R. , and Davis, L.~S. .
+\newblock Soft-{NMS} -- improving object detection with one line of code.
+\newblock In \emph{IEEE International Conference on Computer Vision (ICCV)},
+  2017.
+\newblock URL \url{https://arxiv.org/abs/1704.04503}.
+
+\bibitem[Bucilu{\u{a}} et~al.(2006)Bucilu{\u{a}}, Caruana, and
+  Niculescu-Mizil]{bucila2006compression}
+Bucilu{\u{a}}, C. , Caruana, R. , and Niculescu-Mizil, A. .
+\newblock Model compression.
+\newblock In \emph{Proceedings of the 12th ACM SIGKDD International Conference
+  on Knowledge Discovery and Data Mining}, pages 535--541, 2006.
+\newblock URL \url{https://www.cs.cornell.edu/~caruana/compression.kdd06.pdf}.
+
+\bibitem[Cai and Vasconcelos(2021)]{cai2021cascade}
+Cai, Z.  and Vasconcelos, N. .
+\newblock Cascade r-cnn: High quality object detection and instance
+  segmentation.
+\newblock \emph{IEEE Transactions on Pattern Analysis and Machine
+  Intelligence}, 43\penalty0 (5):\penalty0 1483--1498, 2021.
+\newblock \doi{10.1109/TPAMI.2019.2956516}.
+
+\bibitem[Carion et~al.(2020)Carion, Massa, Synnaeve, Usunier, Kirillov, and
+  Zagoruyko]{carion2020detr}
+Carion, N. , Massa, F. , Synnaeve, G. , Usunier, N. , Kirillov, A. , and
+  Zagoruyko, S. .
+\newblock End-to-end object detection with transformers.
+\newblock In \emph{European Conference on Computer Vision (ECCV)}, 2020.
+\newblock URL \url{https://arxiv.org/abs/2005.12872}.
+
+\bibitem[Chen et~al.(2021{\natexlab{a}})Chen, Mei, Zhang, Wang, Feng, and
+  Chen]{chen2021semckd}
+Chen, D. , Mei, J.-P. , Zhang, Y. , Wang, C. , Feng, Y. , and Chen, C. .
+\newblock Cross-layer distillation with semantic calibration.
+\newblock \emph{Proceedings of the AAAI Conference on Artificial Intelligence},
+  35\penalty0 (8):\penalty0 7028--7036, 2021{\natexlab{a}}.
+\newblock URL \url{https://arxiv.org/abs/2012.03236}.
+
+\bibitem[Chen et~al.(2017)Chen, Choi, Yu, Han, and
+  Chandraker]{chen2017learning}
+Chen, G. , Choi, W. , Yu, X. , Han, T. , and Chandraker, M. .
+\newblock Learning efficient object detection models with knowledge
+  distillation.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  Workshops}, 2017.
+
+\bibitem[Chen et~al.(2021{\natexlab{b}})Chen, Liu, Zhao, and
+  Jia]{chen2021reviewkd}
+Chen, P. , Liu, S. , Zhao, H. , and Jia, J. .
+\newblock Distilling knowledge via knowledge review.
+\newblock In \emph{IEEE Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, 2021{\natexlab{b}}.
+\newblock URL \url{https://arxiv.org/abs/2104.09044}.
+
+\bibitem[Cho and Hariharan(2019)]{cho2019efficacy}
+Cho, J.~H.  and Hariharan, B. .
+\newblock On the efficacy of knowledge distillation.
+\newblock \emph{arXiv preprint arXiv:1910.01348}, 2019.
+\newblock URL \url{https://arxiv.org/abs/1910.01348}.
+
+\bibitem[Dai et~al.(2021)Dai, Jiang, Wu, Bao, Wang, Liu, and Zhou]{dai2021gid}
+Dai, X. , Jiang, Z. , Wu, Z. , Bao, Y. , Wang, Z. , Liu, S. , and Zhou, E. .
+\newblock General instance distillation for object detection.
+\newblock In \emph{Proceedings of the IEEE/CVF Conference on Computer Vision
+  and Pattern Recognition (CVPR)}, pages 7842--7851, 2021.
+
+\bibitem[de~Rijk et~al.(2022)de~Rijk, Schneider, Cordts, and
+  Gavrila]{derijk2022structural}
+Rijk, P. , de, Schneider, L. , Cordts, M. , and Gavrila, D.~M. .
+\newblock Structural knowledge distillation for object detection.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2022.
+\newblock URL \url{https://arxiv.org/abs/2211.13133}.
+\newblock arXiv:2211.13133.
+
+\bibitem[Du et~al.(2021)Du, Zhang, Chang, Zhang, Liu, Chen, and
+  Chen]{du2021frs}
+Du, Z. , Zhang, R. , Chang, M. , Zhang, X. , Liu, S. , Chen, T. , and Chen, Y.
+  .
+\newblock Distilling object detectors with feature richness.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~34, 2021.
+\newblock URL \url{https://arxiv.org/abs/2111.00674}.
+
+\bibitem[Everingham et~al.(2010)Everingham, Van~Gool, Williams, Winn, and
+  Zisserman]{everingham2010voc}
+Everingham, M. , Van~Gool, L. , Williams, C. K.~I. , Winn, J. , and Zisserman,
+  A. .
+\newblock The {PASCAL} visual object classes ({VOC}) challenge.
+\newblock \emph{International Journal of Computer Vision}, 88\penalty0
+  (2):\penalty0 303--338, 2010.
+\newblock \doi{10.1007/s11263-009-0275-4}.
+
+\bibitem[Girshick(2015)]{girshick2015fast}
+Girshick, R. .
+\newblock Fast {R-CNN}.
+\newblock In \emph{IEEE International Conference on Computer Vision (ICCV)},
+  2015.
+\newblock URL \url{https://arxiv.org/abs/1504.08083}.
+
+\bibitem[Girshick et~al.(2014)Girshick, Donahue, Darrell, and
+  Malik]{girshick2014rcnn}
+Girshick, R. , Donahue, J. , Darrell, T. , and Malik, J. .
+\newblock Rich feature hierarchies for accurate object detection and semantic
+  segmentation.
+\newblock In \emph{IEEE Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, 2014.
+\newblock \doi{10.1109/CVPR.2014.81}.
+\newblock URL \url{https://arxiv.org/abs/1311.2524}.
+
+\bibitem[Gou et~al.(2021)Gou, Yu, Maybank, and Tao]{gou2021survey}
+Gou, J. , Yu, B. , Maybank, S.~J. , and Tao, D. .
+\newblock Knowledge distillation: A survey.
+\newblock \emph{International Journal of Computer Vision}, 129\penalty0
+  (6):\penalty0 1789--1819, 2021.
+\newblock URL \url{https://arxiv.org/abs/2006.05525}.
+
+\bibitem[Guo et~al.(2021)Guo, Han, Wang, Wu, Chen, Xu, and Xu]{guo2021defeat}
+Guo, J. , Han, K. , Wang, Y. , Wu, H. , Chen, X. , Xu, C. , and Xu, C. .
+\newblock Distilling object detectors via decoupled features.
+\newblock In \emph{IEEE/CVF Conference on Computer Vision and Pattern
+  Recognition (CVPR)}, 2021.
+\newblock URL \url{https://arxiv.org/abs/2103.14475}.
+\newblock arXiv:2103.14475.
+
+\bibitem[Han et~al.(2015)Han, Pool, Tran, and Dally]{han2015learning}
+Han, S. , Pool, J. , Tran, J. , and Dally, W.~J. .
+\newblock Learning both weights and connections for efficient neural networks.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~28, 2015.
+\newblock URL \url{https://arxiv.org/abs/1506.02626}.
+
+\bibitem[Han et~al.(2016)Han, Mao, and Dally]{han2016deep}
+Han, S. , Mao, H. , and Dally, W.~J. .
+\newblock Deep compression: Compressing deep neural networks with pruning,
+  trained quantization and huffman coding.
+\newblock \emph{International Conference on Learning Representations (ICLR)},
+  2016.
+\newblock URL \url{https://arxiv.org/abs/1510.00149}.
+
+\bibitem[He et~al.(2016)He, Zhang, Ren, and Sun]{he2016resnet}
+He, K. , Zhang, X. , Ren, S. , and Sun, J. .
+\newblock Deep residual learning for image recognition.
+\newblock In \emph{IEEE Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, 2016.
+
+\bibitem[Heo et~al.(2019)Heo, Kim, Yun, Park, Kwak, and Choi]{heo2019ofd}
+Heo, B. , Kim, J. , Yun, S. , Park, H. , Kwak, N. , and Choi, J.~Y. .
+\newblock A comprehensive overhaul of feature distillation.
+\newblock In \emph{IEEE International Conference on Computer Vision (ICCV)},
+  2019.
+\newblock URL \url{https://arxiv.org/abs/1904.01866}.
+
+\bibitem[Hinton et~al.(2015)Hinton, Vinyals, and Dean]{hinton2015distilling}
+Hinton, G. , Vinyals, O. , and Dean, J. .
+\newblock Distilling the knowledge in a neural network.
+\newblock \emph{arXiv preprint arXiv:1503.02531}, 2015.
+
+\bibitem[Huang and Wang(2017)]{huang2017nst}
+Huang, Z.  and Wang, N. .
+\newblock Like what you like: Knowledge distill via neuron selectivity
+  transfer.
+\newblock \emph{arXiv preprint arXiv:1707.01219}, 2017.
+\newblock URL \url{https://arxiv.org/abs/1707.01219}.
+
+\bibitem[Hubara et~al.(2016)Hubara, Courbariaux, Soudry, El-Yaniv, and
+  Bengio]{hubara2016quantized}
+Hubara, I. , Courbariaux, M. , Soudry, D. , El-Yaniv, R. , and Bengio, Y. .
+\newblock Quantized neural networks: Training neural networks with low
+  precision weights and activations.
+\newblock \emph{arXiv preprint arXiv:1609.07061}, 2016.
+\newblock URL \url{https://arxiv.org/abs/1609.07061}.
+
+\bibitem[Johnson et~al.(2016)Johnson, Alahi, and
+  Fei-Fei]{johnson2016perceptual}
+Johnson, J. , Alahi, A. , and Fei-Fei, L. .
+\newblock Perceptual losses for real-time style transfer and super-resolution.
+\newblock In \emph{European Conference on Computer Vision (ECCV)}, 2016.
+\newblock URL \url{https://arxiv.org/abs/1603.08155}.
+
+\bibitem[Kang et~al.(2021)Kang, Zhang, Zhang, Sun, and Zheng]{kang2021icd}
+Kang, Z. , Zhang, P. , Zhang, X. , Sun, J. , and Zheng, N. .
+\newblock Instance-conditional knowledge distillation for object detection.
+\newblock In \emph{Advances in Neural Information Processing Systems},
+  volume~34, 2021.
+\newblock URL \url{https://arxiv.org/abs/2110.12724}.
+
+\bibitem[Kulkarni et~al.(2020)Kulkarni, Panchi, Raparthy, and
+  Chiddarwar]{kulkarni2020skd}
+Kulkarni, A. , Panchi, N. , Raparthy, S.~C. , and Chiddarwar, S. .
+\newblock Data efficient stagewise knowledge distillation.
+\newblock \emph{arXiv preprint arXiv:1911.06786}, 2020.
+\newblock URL \url{https://arxiv.org/abs/1911.06786}.
+
+\bibitem[Li et~al.(2022{\natexlab{a}})Li, Li, Wang, Zhang, Wu, and
+  Ding]{li2022rank}
+Li, G. , Li, X. , Wang, Y. , Zhang, S. , Wu, Y. , and Ding, L. .
+\newblock Knowledge distillation for object detection via rank mimicking and
+  prediction-guided feature imitation.
+\newblock \emph{Proceedings of the AAAI Conference on Artificial Intelligence},
+  36\penalty0 (2):\penalty0 1306--1313, 2022{\natexlab{a}}.
+\newblock \doi{10.1609/aaai.v36i2.20018}.
+
+\bibitem[Li et~al.(2022{\natexlab{b}})Li, Zhang, Zhang, Yang, Li, Zhong, Wang,
+  Yuan, Zhang, Hwang, Chang, and Gao]{li2022glip}
+Li, L.~H. , Zhang, P. , Zhang, H. , Yang, J. , Li, C. , Zhong, Y. , Wang, L. ,
+  Yuan, L. , Zhang, L. , Hwang, J.-N. , Chang, K.-W. , and Gao, J. .
+\newblock Grounded language-image pre-training.
+\newblock In \emph{Proceedings of the IEEE/CVF Conference on Computer Vision
+  and Pattern Recognition (CVPR)}, 2022{\natexlab{b}}.
+\newblock URL
+  \url{https://openaccess.thecvf.com/content/CVPR2022/html/Li_Grounded_Language-Image_Pre-Training_CVPR_2022_paper.html}.
+
+\bibitem[Lin et~al.(2014)Lin, Maire, Belongie, Hays, Perona, Ramanan,
+  Doll{\'a}r, and Zitnick]{lin2014coco}
+Lin, T.-Y. , Maire, M. , Belongie, S. , Hays, J. , Perona, P. , Ramanan, D. ,
+  Doll{\'a}r, P. , and Zitnick, C.~L. .
+\newblock Microsoft coco: Common objects in context.
+\newblock In \emph{European Conference on Computer Vision (ECCV)}, 2014.
+
+\bibitem[Lin et~al.(2017{\natexlab{a}})Lin, Doll{\'a}r, Girshick, He,
+  Hariharan, and Belongie]{lin2017fpn}
+Lin, T.-Y. , Doll{\'a}r, P. , Girshick, R. , He, K. , Hariharan, B. , and
+  Belongie, S. .
+\newblock Feature pyramid networks for object detection.
+\newblock In \emph{IEEE Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, 2017{\natexlab{a}}.
+
+\bibitem[Lin et~al.(2017{\natexlab{b}})Lin, Goyal, Girshick, He, and
+  Doll{\'a}r]{lin2017focal}
+Lin, T.-Y. , Goyal, P. , Girshick, R. , He, K. , and Doll{\'a}r, P. .
+\newblock Focal loss for dense object detection.
+\newblock In \emph{IEEE International Conference on Computer Vision (ICCV)},
+  2017{\natexlab{b}}.
+
+\bibitem[Liu et~al.(2023)Liu, Zeng, Ren, Li, Zhang, Yang, Jiang, Li, Yang, Su,
+  Zhu, and Zhang]{liu2023groundingdino}
+Liu, S. , Zeng, Z. , Ren, T. , Li, F. , Zhang, H. , Yang, J. , Jiang, Q. , Li,
+  C. , Yang, J. , Su, H. , Zhu, J. , and Zhang, L. .
+\newblock Grounding dino: Marrying {DINO} with grounded pre-training for
+  open-set object detection.
+\newblock \emph{arXiv preprint arXiv:2303.05499}, 2023.
+\newblock URL \url{https://arxiv.org/abs/2303.05499}.
+
+\bibitem[Liu et~al.(2016)Liu, Anguelov, Erhan, Szegedy, Reed, Fu, and
+  Berg]{liu2016ssd}
+Liu, W. , Anguelov, D. , Erhan, D. , Szegedy, C. , Reed, S. , Fu, C.-Y. , and
+  Berg, A.~C. .
+\newblock {SSD}: Single shot multibox detector.
+\newblock In \emph{European Conference on Computer Vision (ECCV)}, 2016.
+\newblock URL \url{https://arxiv.org/abs/1512.02325}.
+
+\bibitem[Liu et~al.(2021)Liu, Lin, Cao, Hu, Wei, Zhang, Lin, and
+  Guo]{liu2021swin}
+Liu, Z. , Lin, Y. , Cao, Y. , Hu, H. , Wei, Y. , Zhang, Z. , Lin, S. , and Guo,
+  B. .
+\newblock Swin transformer: Hierarchical vision transformer using shifted
+  windows.
+\newblock In \emph{Proceedings of the IEEE/CVF International Conference on
+  Computer Vision (ICCV)}, 2021.
+\newblock URL \url{https://arxiv.org/abs/2103.14030}.
+
+\bibitem[Mirzadeh et~al.(2020)Mirzadeh, Farajtabar, Li, Levine, Matsukawa, and
+  Ghasemzadeh]{mirzadeh2020ta}
+Mirzadeh, S.-I. , Farajtabar, M. , Li, A. , Levine, N. , Matsukawa, A. , and
+  Ghasemzadeh, H. .
+\newblock Improved knowledge distillation via teacher assistant.
+\newblock \emph{Proceedings of the AAAI Conference on Artificial Intelligence},
+  34\penalty0 (4):\penalty0 5191--5198, 2020.
+\newblock URL \url{https://arxiv.org/abs/1902.03393}.
+
+\bibitem[MTheiler(2019)]{mtheiler2019yolo}
+MTheiler.
+\newblock Detected-with-yolo--schreibtisch-mit-objekten.jpg.
+\newblock Wikimedia Commons, 2019.
+\newblock URL \url{https://commons.wikimedia.org/w/index.php?curid=75843378}.
+\newblock Own work, licensed under CC BY-SA 4.0.
+
+\bibitem[Nilsson and Akenine-M{\"o}ller(2020)]{nilsson2020understandssim}
+Nilsson, J.  and Akenine-M{\"o}ller, T. .
+\newblock Understanding {SSIM}.
+\newblock \emph{arXiv preprint arXiv:2006.13846}, 2020.
+\newblock URL \url{https://arxiv.org/abs/2006.13846}.
+
+\bibitem[{NVIDIA}(2017)]{nvidia2017v100}
+{NVIDIA}.
+\newblock Nvidia tesla v100 gpu architecture.
+\newblock White paper, 2017.
+\newblock URL
+  \url{https://images.nvidia.com/content/volta-architecture/pdf/volta-architecture-whitepaper.pdf}.
+
+\bibitem[Park et~al.(2019)Park, Kim, Lu, and Cho]{park2019rkd}
+Park, W. , Kim, D. , Lu, Y. , and Cho, M. .
+\newblock Relational knowledge distillation.
+\newblock In \emph{IEEE Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, 2019.
+\newblock URL \url{https://arxiv.org/abs/1904.05068}.
+
+\bibitem[Peng et~al.(2019)Peng, Jin, Liu, Zhou, Wu, Liu, Li, and
+  Zhang]{peng2019cckd}
+Peng, B. , Jin, X. , Liu, J. , Zhou, S. , Wu, Y. , Liu, Y. , Li, D. , and
+  Zhang, Z. .
+\newblock Correlation congruence for knowledge distillation.
+\newblock In \emph{IEEE International Conference on Computer Vision (ICCV)},
+  2019.
+\newblock URL \url{https://arxiv.org/abs/1904.01802}.
+
+\bibitem[Redmon et~al.(2016)Redmon, Divvala, Girshick, and
+  Farhadi]{redmon2016yolo}
+Redmon, J. , Divvala, S. , Girshick, R. , and Farhadi, A. .
+\newblock You only look once: Unified, real-time object detection.
+\newblock In \emph{IEEE Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, 2016.
+\newblock URL \url{https://arxiv.org/abs/1506.02640}.
+
+\bibitem[Ren et~al.(2015)Ren, He, Girshick, and Sun]{ren2015faster}
+Ren, S. , He, K. , Girshick, R. , and Sun, J. .
+\newblock Faster r-cnn: Towards real-time object detection with region proposal
+  networks.
+\newblock In \emph{Advances in Neural Information Processing Systems
+  (NeurIPS)}, 2015.
+
+\bibitem[Rezatofighi et~al.(2019)Rezatofighi, Tsoi, Gwak, Sadeghian, Reid, and
+  Savarese]{rezatofighi2019giou}
+Rezatofighi, H. , Tsoi, N. , Gwak, J. , Sadeghian, A. , Reid, I. , and
+  Savarese, S. .
+\newblock Generalized intersection over union: A metric and a loss for bounding
+  box regression.
+\newblock In \emph{IEEE Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, 2019.
+\newblock URL \url{https://arxiv.org/abs/1902.09630}.
+
+\bibitem[Romero et~al.(2015)Romero, Ballas, Kahou, Chassang, Gatta, and
+  Bengio]{romero2015fitnets}
+Romero, A. , Ballas, N. , Kahou, S.~E. , Chassang, A. , Gatta, C. , and Bengio,
+  Y. .
+\newblock Fitnets: Hints for thin deep nets.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2015.
+
+\bibitem[Shi et~al.(2025)Shi, Zheng, Song, and Yeh]{shi2025kddetection}
+Shi, Q. , Zheng, A.~Y. , Song, Q. , and Yeh, R.~A. .
+\newblock Knowledge distillation detection for open-weights models.
+\newblock \emph{arXiv preprint arXiv:2510.02302}, 2025.
+\newblock URL \url{https://arxiv.org/abs/2510.02302}.
+
+\bibitem[Tian et~al.(2020)Tian, Krishnan, and Isola]{tian2020crd}
+Tian, Y. , Krishnan, D. , and Isola, P. .
+\newblock Contrastive representation distillation.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2020.
+\newblock URL \url{https://arxiv.org/abs/1910.10699}.
+
+\bibitem[Tung and Mori(2019)]{tung2019spkd}
+Tung, F.  and Mori, G. .
+\newblock Similarity-preserving knowledge distillation.
+\newblock In \emph{IEEE International Conference on Computer Vision (ICCV)},
+  2019.
+\newblock URL \url{https://arxiv.org/abs/1907.09682}.
+
+\bibitem[Varshney(2021)]{varshney2021kdprimer}
+Varshney, N. .
+\newblock A primer on knowledge distillation in {NLP} --- part 1.
+\newblock Analytics Vidhya on Medium, 2021.
+\newblock URL
+  \url{https://medium.com/analytics-vidhya/a-primer-on-knowledge-distillation-in-nlp-part-1-754ac00dadc6}.
+\newblock Published December 22, 2021.
+
+\bibitem[Venkataramanan et~al.(2021)Venkataramanan, Wu, Bovik, Katsavounidis,
+  and Shahid]{venkataramanan2021ssimguide}
+Venkataramanan, A.~K. , Wu, C. , Bovik, A.~C. , Katsavounidis, I. , and Shahid,
+  Z. .
+\newblock A hitchhiker's guide to structural similarity.
+\newblock \emph{IEEE Access}, 9:\penalty0 28872--28896, 2021.
+\newblock URL \url{https://arxiv.org/abs/2101.06354}.
+
+\bibitem[Wang et~al.(2019)Wang, Yuan, Zhang, and Feng]{wang2019distilling}
+Wang, T. , Yuan, L. , Zhang, X. , and Feng, J. .
+\newblock Distilling object detectors with fine-grained feature imitation.
+\newblock In \emph{IEEE Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, 2019.
+
+\bibitem[Wang et~al.(2003)Wang, Simoncelli, and Bovik]{wang2003msssim}
+Wang, Z. , Simoncelli, E.~P. , and Bovik, A.~C. .
+\newblock Multi-scale structural similarity for image quality assessment.
+\newblock In \emph{The Thirty-Seventh Asilomar Conference on Signals, Systems
+  and Computers}, 2003.
+\newblock URL \url{https://ece.uwaterloo.ca/~z70wang/publications/msssim.html}.
+
+\bibitem[Wang et~al.(2004)Wang, Bovik, Sheikh, and Simoncelli]{wang2004ssim}
+Wang, Z. , Bovik, A.~C. , Sheikh, H.~R. , and Simoncelli, E.~P. .
+\newblock Image quality assessment: From error visibility to structural
+  similarity.
+\newblock \emph{IEEE Transactions on Image Processing}, 13\penalty0
+  (4):\penalty0 600--612, 2004.
+
+\bibitem[Yang et~al.(2022)Yang, Li, Jiang, Gong, Yuan, Zhao, and
+  Yuan]{yang2022focal}
+Yang, Z. , Li, Z. , Jiang, X. , Gong, Y. , Yuan, Z. , Zhao, D. , and Yuan, C. .
+\newblock Focal and global knowledge distillation for detectors.
+\newblock In \emph{IEEE Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, 2022.
+
+\bibitem[Yim et~al.(2017)Yim, Joo, Bae, and Kim]{yim2017fsp}
+Yim, J. , Joo, D. , Bae, J. , and Kim, J. .
+\newblock A gift from knowledge distillation: Fast optimization, network
+  minimization and transfer learning.
+\newblock In \emph{IEEE Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, 2017.
+\newblock URL
+  \url{https://openaccess.thecvf.com/content_cvpr_2017/html/Yim_A_Gift_From_CVPR_2017_paper.html}.
+
+\bibitem[Zagoruyko and Komodakis(2017)]{zagoruyko2017paying}
+Zagoruyko, S.  and Komodakis, N. .
+\newblock Paying more attention to attention: Improving the performance of
+  convolutional neural networks via attention transfer.
+\newblock In \emph{International Conference on Learning Representations
+  (ICLR)}, 2017.
+
+\bibitem[Zhang et~al.(2018)Zhang, Isola, Efros, Shechtman, and
+  Wang]{zhang2018lpips}
+Zhang, R. , Isola, P. , Efros, A.~A. , Shechtman, E. , and Wang, O. .
+\newblock The unreasonable effectiveness of deep features as a perceptual
+  metric.
+\newblock In \emph{IEEE Conference on Computer Vision and Pattern Recognition
+  (CVPR)}, 2018.
+\newblock URL \url{https://arxiv.org/abs/1801.03924}.
+
+\bibitem[Zhao et~al.(2015)Zhao, Gallo, Frosio, and Kautz]{zhao2015imgloss}
+Zhao, H. , Gallo, O. , Frosio, I. , and Kautz, J. .
+\newblock Loss functions for neural networks for image processing.
+\newblock \emph{arXiv preprint arXiv:1511.08861}, 2015.
+\newblock URL \url{https://arxiv.org/abs/1511.08861}.
+
+\end{thebibliography}
