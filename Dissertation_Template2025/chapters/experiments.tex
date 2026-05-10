@@ -1,12 +1,12 @@
 \chapter{Experiments and Discussion}
 
-This chapter reports the empirical evidence available from the implemented training pipeline and uses it to analyse the behaviour of the proposed distillation method. Unlike the earlier chapters, which focused on methodological design, the present chapter is grounded in concrete training artefacts contained in the project repository: configuration files, final student checkpoints, and TensorBoard event logs for multiple experimental runs. The goal is not only to present headline metrics, but also to interpret what the observed behaviour suggests about structural knowledge distillation in compact RetinaNet detectors under realistic single-GPU constraints.
+This chapter reports the empirical evidence available from the implemented training pipeline and uses it to analyse the behaviour of the proposed distillation method. Unlike the earlier chapters, which focused on methodological design, the present chapter is grounded in concrete training artefacts contained in the project repository: configuration files, final student checkpoints, and recorded training metrics for multiple experimental runs. The goal is not only to present headline metrics, but also to interpret what the observed behaviour suggests about structural knowledge distillation in compact RetinaNet detectors under realistic single-GPU constraints.
 
 \section{Experimental Setup}
 
 All experiments follow the same basic RetinaNet training framework introduced in Chapters 3 and 4. The dataset interface uses COCO-format annotations, and evaluation is conducted on the COCO 2017 validation split through \texttt{pycocotools}. In the current repository, each evaluated run reports metrics on $5000$ validation images, which matches the standard \texttt{val2017} evaluation partition. The training annotations are drawn from the corresponding COCO training set, while images and labels are converted into the dictionary format expected by \texttt{torchvision}'s RetinaNet implementation. Bounding boxes are transformed from the COCO convention $(x,y,w,h)$ to corner coordinates $(x_{\min},y_{\min},x_{\max},y_{\max})$, degenerate boxes are filtered, and images are converted to floating-point tensors in the range $[0,1]$ before they enter the detector.
 
-The training configuration is intentionally conservative because the project is constrained by access to a single rented NVIDIA Tesla V100 GPU. All reported runs use a batch size of $6$, an AdamW optimizer with learning rate $10^{-4}$, no learning-rate scheduler, and $10$ training epochs. To keep the experiment affordable while still exposing the student to a broad part of the training distribution, the code samples $30\%$ of the training dataset in each epoch and re-samples that subset across epochs using a deterministic seed schedule. This means the student does not simply revisit the same small subset repeatedly; instead, it gradually sees a wider portion of the data distribution while the overall wall-clock cost remains manageable. Evaluation is performed at every epoch, and the resulting COCO metrics are logged to TensorBoard together with training losses.
+The training configuration is intentionally conservative because the project is constrained by access to a single rented NVIDIA Tesla V100 GPU. All reported runs use a batch size of $6$, an AdamW optimizer with learning rate $10^{-4}$, no learning-rate scheduler, and $10$ training epochs. To keep the experiment affordable while still exposing the student to a broad part of the training distribution, the code samples $30\%$ of the training dataset in each epoch and re-samples that subset across epochs using a deterministic seed schedule. This means the student does not simply revisit the same small subset repeatedly; instead, it gradually sees a wider portion of the data distribution while the overall wall-clock cost remains manageable. Evaluation is performed at every epoch, and the resulting COCO metrics are recorded together with training losses.
 
 When distillation is enabled, the teacher branch is frozen throughout training and the optimizer only updates student parameters. The current knowledge distillation configuration uses a window size of $7$, a distillation weight $\lambda=0.5$, and a single selected internal feature key \texttt{"2"} with weight $1.0$. In implementation terms, this corresponds to supervising one intermediate FPN representation rather than the full pyramid. Although that choice does not exhaust the space of hierarchical supervision strategies, it provides a controlled initial experiment that isolates whether even a modest amount of structural teacher guidance can improve the student.
 
@@ -30,7 +30,7 @@ Run name & Teacher & Student & KD enabled & Purpose \\
 \hline
 \end{tabular}
 }
-\caption{Experiment configurations recovered from the repository \texttt{json} files and TensorBoard runs. All runs use AdamW, batch size $6$, $10$ epochs, per-epoch subset sampling with ratio $0.3$, and COCO evaluation every epoch.}
+\caption{Experiment configurations recovered from the repository \texttt{json} files and saved run records. All runs use AdamW, batch size $6$, $10$ epochs, per-epoch subset sampling with ratio $0.3$, and COCO evaluation every epoch.}
 \label{tab:exp-configs}
 \end{table}
 
@@ -69,20 +69,22 @@ Table~\ref{tab:main-results} reports the final COCO validation metrics logged fo
 \begin{table}[p]
 \centering
 \small
-\begin{tabular}{|l|c|c|c|c|c|c|}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{|l|c|c|c|c|c|c|c|}
 \hline
-Run & mAP & AP$_{50}$ & AP$_{75}$ & AP$_S$ & AP$_M$ & AP$_L$ \\
+Run & mAP & $\Delta$ mAP & AP$_{50}$ & AP$_{75}$ & AP$_S$ & AP$_M$ & AP$_L$ \\
 \hline
-Vanilla ResNet-18 & 0.1515 & 0.2544 & 0.1569 & 0.0752 & 0.1631 & 0.1905 \\
+Vanilla ResNet-18 & 0.1515 & baseline & 0.2544 & 0.1569 & 0.0752 & 0.1631 & 0.1905 \\
 \hline
-ResNet-50 $\rightarrow$ ResNet-18 KD & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.0000 \\
+ResNet-50 $\rightarrow$ ResNet-18 KD & 0.0000 & $-0.1515$ & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.0000 \\
 \hline
-ResNet-101 $\rightarrow$ ResNet-18 KD & 0.1636 & 0.2741 & 0.1701 & 0.0809 & 0.1759 & 0.2157 \\
+\textbf{ResNet-101 $\rightarrow$ ResNet-18 KD (proposed compact model)} & \textbf{0.1636} & \textbf{+0.0121} & \textbf{0.2741} & \textbf{0.1701} & \textbf{0.0809} & \textbf{0.1759} & \textbf{0.2157} \\
 \hline
 ResNet-101 $\rightarrow$ ResNet-50 KD & 0.1954 & 0.3229 & 0.2038 & 0.1105 & 0.2104 & 0.2437 \\
 \hline
 \end{tabular}
-\caption{Final COCO validation metrics extracted from TensorBoard logs in the repository. All scores are for the student branch evaluated on $5000$ validation images.}
+}
+\caption{Final COCO validation metrics extracted from the recorded experiment outputs in the repository. All scores are for the student branch evaluated on $5000$ validation images. The proposed compact model, \texttt{ResNet-101} $\rightarrow$ \texttt{ResNet-18} KD, improves on the vanilla \texttt{ResNet-18} baseline across every reported COCO metric while keeping the same deployment-sized student architecture.}
 \label{tab:main-results}
 \end{table}
 
@@ -126,7 +128,7 @@ Epoch & Vanilla ResNet-18 & ResNet-101 $\rightarrow$ ResNet-18 KD & Absolute del
 10 & 0.1515 & 0.1636 & +0.0121 \\
 \hline
 \end{tabular}
-\caption{Epoch-wise validation mAP for the compact baseline and the strongest compact-student distillation run. Values are extracted from the TensorBoard scalar logs stored in the repository.}
+\caption{Epoch-wise validation mAP for the compact baseline and the strongest compact-student distillation run. Values are extracted from the recorded scalar outputs stored in the repository.}
 \label{tab:epoch-curves}
 \end{table}
 
@@ -160,7 +162,7 @@ From a practical perspective, the most important case remains the one that worke
 
 \section{Practical Implications for Reproducibility and Deployment}
 
-One of the strengths of my work is that its empirical claims are tightly coupled to reproducible artefacts. The experimental evidence is not described abstractly; it is recoverable from the repository through configuration files, TensorBoard event logs, saved checkpoints, and a central training entry point. This matters because detector distillation work can easily become difficult to audit when the code path for baselines differs from the code path for KD runs, or when intermediate decisions are hidden inside ad hoc scripts. Here, the same training framework supports both student-only and teacher-guided training, reducing the chance that an apparent improvement is caused by unrelated engineering differences. For an MSc project, this level of procedural clarity is itself a meaningful contribution.
+One of the strengths of my work is that its empirical claims are tightly coupled to reproducible artefacts. The experimental evidence is not described abstractly; it is recoverable from the repository through configuration files, saved metric traces, checkpoints, and a central training entry point. This matters because detector distillation work can easily become difficult to audit when the code path for baselines differs from the code path for KD runs, or when intermediate decisions are hidden inside ad hoc scripts. Here, the same training framework supports both student-only and teacher-guided training, reducing the chance that an apparent improvement is caused by unrelated engineering differences. For an MSc project, this level of procedural clarity is itself a meaningful contribution.
 
 The deployment implications are also concrete. The strongest compact-student result improves mAP while preserving the same saved student checkpoint size as the non-distilled baseline. This means the training-time cost of adding a teacher does not leak into the inference-time package. For deployment-oriented detector compression, that separation is essential. If the method had improved accuracy only by keeping part of the teacher at inference time, it would no longer solve the stated efficiency problem. Because the implementation saves only the student state dictionary, the method preserves the intended teacher-train, student-deploy workflow exactly.
 
@@ -170,7 +172,7 @@ At the same time, the repository suggests a practical lesson for future users of
 
 Several limitations should be stated clearly. First, the training schedule is short. Ten epochs with a $30\%$ per-epoch sample ratio are sufficient to reveal learning trends and compare configurations under a fixed budget, but they are not equivalent to a full COCO training schedule. Absolute mAP values should therefore be interpreted as budget-constrained indicators rather than as fully optimized detector performance. Second, the experiments appear to use a single random-seed setting for each configuration. Without repeated runs, it is not possible to estimate variance or confirm that the observed gains are robust to sampling noise.
 
-Third, the distillation design itself is only partially explored. The current implementation uses a single selected feature key, a single SSIM window size, and a fixed global KD weight. These decisions were appropriate for an initial controlled experiment, but they limit how confidently one can generalize from the present results to the broader space of structural detector distillation methods. Fourth, not every comparison baseline is available. In particular, the repository includes a distilled \texttt{ResNet-50} student but not a student-only \texttt{ResNet-50} baseline, which prevents a clean statement about the gain due specifically to distillation in that setting. Fifth, the TensorBoard logs for the \texttt{ResNet-101} $\rightarrow$ \texttt{ResNet-50} configuration span multiple event files, which suggests the run may have been resumed or repeated during development. The final logged metric is still usable, but the run history is less clean than that of the other experiments.
+Third, the distillation design itself is only partially explored. The current implementation uses a single selected feature key, a single SSIM window size, and a fixed global KD weight. These decisions were appropriate for an initial controlled experiment, but they limit how confidently one can generalize from the present results to the broader space of structural detector distillation methods. Fourth, not every comparison baseline is available. In particular, the repository includes a distilled \texttt{ResNet-50} student but not a student-only \texttt{ResNet-50} baseline, which prevents a clean statement about the gain due specifically to distillation in that setting. Fifth, the saved records for the \texttt{ResNet-101} $\rightarrow$ \texttt{ResNet-50} configuration span multiple output files, which suggests the run may have been resumed or repeated during development. The final reported metric is still usable, but the run history is less clean than that of the other experiments.
 
 Despite these limitations, the experiments are still valuable. They are directly tied to the repository artefacts, they compare meaningful teacher-student settings, and they answer my most important practical question in a non-trivial way: under a constrained training budget, can structural distillation improve a compact RetinaNet student without changing deployment cost? The answer provided by the \texttt{ResNet-101} $\rightarrow$ \texttt{ResNet-18} run is yes, at least for the implemented configuration and measured metrics.
 

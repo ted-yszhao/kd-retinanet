@@ -1,2 +1,111 @@
-\chapter*{Appendix}
-No appendix material has been added to this dissertation draft yet.
+\chapter{Codebase and Configuration Manual}
+
+This appendix records the structure of the submitted repository so that the implementation behind the dissertation can be inspected without relying on informal notes. I include it as a practical manual rather than as another narrative chapter. Its purpose is to show how the code is organized, where the experiment definitions live, and how the reported runs map to concrete files.
+
+\section{Top-Level Repository Layout}
+
+The repository is organized around a small number of top-level directories, each with a separate role in the workflow described in the main chapters.
+
+\begin{itemize}
+    \item \texttt{main.py}: the main command-line entry point used to load a JSON configuration and start training.
+    \item \texttt{configs/}: experiment definitions for vanilla RetinaNet baselines and teacher-student KD runs.
+    \item \texttt{src/}: implementation code for configuration loading, COCO data access, RetinaNet construction, feature extraction, the teacher-student wrapper, the SSIM-based KD loss, and evaluation.
+    \item \texttt{scripts/tests/}: lightweight test scripts for dataset loading, model forward passes, feature shapes, distillation, and evaluation code paths.
+    \item \texttt{checkpoints/}: saved final student checkpoints from completed experiments.
+    \item \texttt{runs/}: runtime outputs such as recorded training logs and detached terminal logs from long training jobs.
+\end{itemize}
+
+\section{Training Entry Point and Execution Flow}
+
+The file \texttt{main.py} is intentionally small. Its job is to parse command-line arguments, load one central configuration file, apply optional key-value overrides, print the resolved configuration if requested, and then pass control to the training routine. This keeps experiment control in the configuration layer rather than scattering hyperparameters across multiple scripts.
+
+In practice, the training workflow follows four steps:
+
+\begin{enumerate}
+    \item Load a JSON experiment file from \texttt{configs/}.
+    \item Resolve any command-line overrides such as a temporary learning-rate or epoch change.
+    \item Build the teacher branch, student branch, optimizer, scheduler, and evaluation setup from the resolved configuration.
+    \item Run either vanilla student-only training or teacher-student distillation, depending on whether the \texttt{teacher} section is \texttt{null} and whether \texttt{kd.enabled} is set to \texttt{true}.
+\end{enumerate}
+
+This design is useful for dissertation work because it gives every reported experiment a traceable file-level definition. A result in the experimental chapter can therefore be linked directly to one configuration rather than to an undocumented one-off script edit.
+
+\section{Implementation Modules in \texttt{src/}}
+
+The implementation code is intentionally compact. Each module corresponds to one clear responsibility in the training pipeline.
+
+\begin{itemize}
+    \item \texttt{src/config.py}: loads JSON configuration files and applies command-line overrides.
+    \item \texttt{src/data/coco.py}: provides the COCO dataset wrapper used for training and validation loading.
+    \item \texttt{src/models/retinanet\_builder.py}: constructs RetinaNet detectors with the selected student or teacher backbone.
+    \item \texttt{src/models/feature\_extractor.py}: exposes internal feature maps needed for post-FPN distillation.
+    \item \texttt{src/models/distiller.py}: combines teacher and student models into one training wrapper and manages the distillation path.
+    \item \texttt{src/kd/ssim\_kd.py}: implements the SSIM-based structural distillation loss used in this project.
+    \item \texttt{src/evaluation/detection.py}: evaluates trained checkpoints with COCO-style detection metrics.
+\end{itemize}
+
+Together, these modules mirror the methodological structure presented in the dissertation. The literature chapter motivates the distillation signal, the technical chapters define the teacher-student and post-FPN interface, and the code modules implement exactly those choices.
+
+\section{Configuration File Structure}
+
+All main experiments are defined through JSON files in \texttt{configs/}. The files share a common schema so that baseline and KD runs remain directly comparable. The key configuration sections are listed below.
+
+\begin{itemize}
+    \item \texttt{data}: path to the training image directory and training annotation file.
+    \item \texttt{eval\_data}: path to the validation image directory and validation annotation file.
+    \item \texttt{loader}: batch size, shuffle behaviour, and worker count for the data loader.
+    \item \texttt{teacher}: teacher detector definition. This section is \texttt{null} for vanilla runs.
+    \item \texttt{student}: student detector definition, including the backbone used for the final deployed model.
+    \item \texttt{kd}: KD settings such as enabled state, selected feature keys, per-key weights, SSIM window size, and global KD weight.
+    \item \texttt{optimizer}: optimizer name and learning-rate settings.
+    \item \texttt{scheduler}: scheduler type and its associated hyperparameters.
+    \item \texttt{training}: device selection, epoch count, subset sampling policy, run name, log directory, and checkpoint directory.
+    \item \texttt{evaluation}: validation toggle, branch selection, evaluation interval, and primary reported metric.
+\end{itemize}
+
+This schema is one of the most important practical features of the repository. It allows me to change teacher capacity, student capacity, KD strength, or sampling policy without modifying the training code itself.
+
+\section{Current Experiment Configurations}
+
+At the time of submission, the repository contains five first-class configuration files used to define the core experiments.
+
+\begin{itemize}
+    \item \texttt{resnet101\_teacher\_resnet18\_student.json}: KD run with a \texttt{ResNet-101} teacher and a compact \texttt{ResNet-18} student.
+    \item \texttt{resnet101\_teacher\_resnet50\_student.json}: KD run with a \texttt{ResNet-101} teacher and a \texttt{ResNet-50} student.
+    \item \texttt{resnet50\_teacher\_resnet18\_student.json}: KD run with a \texttt{ResNet-50} teacher and a \texttt{ResNet-18} student.
+    \item \texttt{vanilla\_retinanet\_resnet18.json}: student-only RetinaNet baseline with no teacher branch and no KD loss.
+    \item \texttt{vanilla\_retinanet\_resnet50.json}: student-only RetinaNet baseline with a \texttt{ResNet-50} backbone and no teacher branch.
+\end{itemize}
+
+The naming convention is intentionally descriptive. Files beginning with \texttt{vanilla\_retinanet} disable distillation, while files following the pattern \texttt{teacher\_student} explicitly declare the teacher-student pairing used in a KD run.
+
+\section{Config Fields Most Relevant to Reproducibility}
+
+Although the full JSON files contain many fields, a smaller subset determines most of the experimental behaviour discussed in the dissertation.
+
+\begin{itemize}
+    \item \texttt{student.backbone\_name}: selects whether the deployed detector uses \texttt{ResNet-18} or \texttt{ResNet-50}.
+    \item \texttt{teacher.backbone\_name}: selects the teacher backbone for KD runs.
+    \item \texttt{kd.enabled}: switches between vanilla training and teacher-guided distillation.
+    \item \texttt{kd.keys}: selects which internal feature map is used for the current KD loss.
+    \item \texttt{kd.window\_size}: sets the SSIM window used when computing the structural loss.
+    \item \texttt{kd.kd\_weight}: sets the global multiplier $\lambda$ on the KD term.
+    \item \texttt{optimizer.lr}: controls the learning rate and therefore strongly influences stability.
+    \item \texttt{training.sample\_ratio}: determines whether each epoch uses the full training set or a subset.
+    \item \texttt{training.resample\_each\_epoch}: determines whether a new subset is drawn each epoch.
+    \item \texttt{training.run}: names the experiment and controls the prefix used for logs and checkpoints.
+\end{itemize}
+
+These fields are especially important because the positive and negative results in Chapter 5 depend not only on architecture choice, but also on whether the KD path is enabled, which feature key is supervised, and how aggressively the run is optimized under the given compute budget.
+
+\section{Saved Artefacts and Supporting Files}
+
+The repository also includes outputs that support the interpretation of the experiments.
+
+\begin{itemize}
+    \item Final checkpoints in \texttt{checkpoints/} correspond to completed student models used for later evaluation.
+    \item Runtime logs in \texttt{runs/} preserve the console output of long detached training jobs.
+    \item The test files in \texttt{scripts/tests/} provide targeted checks for data loading, forward execution, FPN feature shapes, KD loss computation, and evaluation behaviour.
+\end{itemize}
+
+From an assessment perspective, these artefacts matter because they connect the written claims in the dissertation to working code and persisted outputs. The appendix therefore complements the main text by documenting how the reported methodology is instantiated in the submitted repository.

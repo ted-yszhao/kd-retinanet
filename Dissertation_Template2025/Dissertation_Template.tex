@@ -15,7 +15,7 @@
 \usepackage{amssymb}
 \usepackage{bm}
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta,positioning}
+\usetikzlibrary{arrows.meta,positioning,calc}
 \usepackage{psfrag}
 \usepackage{url}
 \usepackage[linktocpage]{hyperref}
@@ -87,14 +87,16 @@
     student/.style={draw, rounded corners=2pt, fill=green!12, minimum width=36mm, minimum height=10mm, align=center},
     feature/.style={draw, rounded corners=2pt, fill=orange!18, minimum width=34mm, minimum height=10mm, align=center},
     loss/.style={draw, rounded corners=2pt, fill=red!12, minimum width=30mm, minimum height=10mm, align=center},
-    note/.style={font=\scriptsize, align=center}
+    note/.style={font=\scriptsize, align=center},
+    flow/.style={->, rounded corners=3pt}
 ]
 \node[input] (image) {Input image batch $x$};
 
 \node[teacher, right=15mm of image, yshift=16mm] (teacherbb) {Frozen teacher\\ResNet-101/50 + FPN};
 \node[student, right=15mm of image, yshift=-16mm] (studentbb) {Trainable student\\ResNet-18/50 + FPN};
-\draw[->] (image.east) |- (teacherbb.west);
-\draw[->] (image.east) |- (studentbb.west);
+\coordinate (imgsplit) at ($(image.east)+(6mm,0)$);
+\draw[flow] (image.east) -- (imgsplit) |- (teacherbb.west);
+\draw[flow] (image.east) -- (imgsplit) |- (studentbb.west);
 
 \node[feature, right=12mm of teacherbb] (tfeat) {Teacher FPN features\\$F_t^{(l)},\ l \in \mathcal{P}$};
 \node[feature, right=12mm of studentbb] (sfeat) {Student FPN features\\$F_s^{(l)},\ l \in \mathcal{P}$};
@@ -102,18 +104,20 @@
 \draw[->] (studentbb) -- (sfeat);
 
 \node[student, below=10mm of sfeat] (head) {RetinaNet head\\classification + box regression};
-\draw[->] (sfeat) -- (head);
+\draw[flow] (sfeat.south) -- ++(0,-4mm) -| (head.west);
 
 \node[loss, right=18mm of tfeat, yshift=-14mm] (kd) {Channel normalization\\channel average + SSIM\\$\mathcal{L}_{kd}$};
-\draw[->] (tfeat.east) -- ++(7mm,0) |- node[pos=0.28, above, font=\scriptsize] {teacher target} (kd.north);
-\draw[->] (sfeat.east) -- ++(7mm,0) |- node[pos=0.28, below, font=\scriptsize] {resize if needed} (kd.south);
+\coordinate (kdinTop) at ($(kd.north west)+(-8mm,0)$);
+\coordinate (kdinBot) at ($(kd.south west)+(-8mm,0)$);
+\draw[flow] (tfeat.east) -- ++(6mm,0) |- node[pos=0.32, above, font=\scriptsize] {teacher target} (kdinTop) -- (kd.north west);
+\draw[flow] (sfeat.east) -- ++(6mm,0) |- node[pos=0.32, below, font=\scriptsize] {resize if needed} (kdinBot) -- (kd.south west);
 
 \node[loss, right=18mm of head] (det) {Detection loss\\$\mathcal{L}_{det}$};
 \draw[->] (head) -- (det);
 
 \node[loss, right=18mm of kd, yshift=-14mm] (total) {Student objective\\$\mathcal{L}_{det} + \lambda \mathcal{L}_{kd}$};
-\draw[->] (kd) -- (total);
-\draw[->] (det.east) -- ++(8mm,0) |- (total.south);
+\draw[flow] (kd.east) -- ++(6mm,0) |- (total.north west);
+\draw[flow] (det.east) -- ++(8mm,0) |- (total.south east);
 
 \node[note, below=5mm of total] {Backpropagation updates only the student branch during training.};
 \end{tikzpicture}%
@@ -167,7 +171,7 @@
 \draw[->] (setb) -- (setnote);
 \end{tikzpicture}%
 }
-\caption{Author's schematic summary of the main deep detection paradigms reviewed in this chapter, based on proposal-based detectors, dense one-stage detectors, and set-prediction transformers \cite{ren2015faster,cai2021cascade,liu2016ssd,lin2017fpn,lin2017focal,carion2020detr}.}
+\caption{My schematic summary of the main deep detection paradigms reviewed in this chapter, based on proposal-based detectors, dense one-stage detectors, and set-prediction transformers \cite{ren2015faster,cai2021cascade,liu2016ssd,lin2017fpn,lin2017focal,carion2020detr}.}
 \label{fig:theory-deep-detection}
 \end{figure}
 }
@@ -272,7 +276,7 @@
 \draw[->] (hard.west) -- (pred.east);
 \end{tikzpicture}%
 }
-\caption{Author's redrawn teacher-student overview of knowledge distillation, adapted from Varshney's explanatory primer on knowledge distillation in NLP \cite{varshney2021kdprimer}.}
+\caption{My redrawn teacher-student overview of knowledge distillation, adapted from Varshney's explanatory primer on knowledge distillation in NLP \cite{varshney2021kdprimer}.}
 \label{fig:theory-kd-primer}
 \end{figure}
 }
@@ -289,32 +293,36 @@
     teacher/.style={model, fill=blue!12},
     student/.style={model, fill=green!12},
     signal/.style={draw, rounded corners=2pt, fill=orange!16, minimum width=37mm, minimum height=10mm, align=center},
-    loss/.style={draw, rounded corners=2pt, fill=red!12, minimum width=36mm, minimum height=10mm, align=center}
+    loss/.style={draw, rounded corners=2pt, fill=red!12, minimum width=36mm, minimum height=10mm, align=center},
+    flow/.style={->, rounded corners=3pt}
 ]
 \node[signal] (input) at (0,0) {Input batch $x$};
 \node[teacher] (teacher) at (4.2,1.8) {Teacher network\\frozen parameters};
 \node[student] (student) at (4.2,-1.8) {Student network\\trainable parameters};
-\draw[->] (input.east) |- (teacher.west);
-\draw[->] (input.east) |- (student.west);
+\coordinate (kdsplit) at ($(input.east)+(6mm,0)$);
+\draw[flow] (input.east) -- (kdsplit) |- (teacher.west);
+\draw[flow] (input.east) -- (kdsplit) |- (student.west);
 
 \node[signal] (logits) at (8.5,2.7) {Logit KD\\soft logits or probabilities};
 \node[signal] (features) at (8.5,1.0) {Feature KD\\intermediate features or hints};
 \node[signal] (relations) at (8.5,-0.7) {Relational or structural KD\\similarities and cross-layer paths};
-\draw[->] (teacher.east) -- ++(0.8,0) |- (logits.west);
-\draw[->] (teacher.east) -- ++(0.8,0) |- (features.west);
-\draw[->] (teacher.east) -- ++(0.8,0) |- (relations.west);
+\coordinate (teachfan) at ($(teacher.east)+(7mm,0)$);
+\draw[flow] (teacher.east) -- (teachfan) |- (logits.west);
+\draw[flow] (teacher.east) -- (teachfan) |- (features.west);
+\draw[flow] (teacher.east) -- (teachfan) |- (relations.west);
 
 \node[loss] (objective) at (12.8,-1.1) {Student objective\\$\mathcal{L}_{sup} + \lambda \mathcal{L}_{KD}$};
-\draw[->] (student) -- (objective);
-\draw[->] (logits.east) -- ++(0.8,0) |- (objective.north);
-\draw[->] (features.east) -- ++(0.8,0) |- (objective.north);
-\draw[->] (relations.east) -- ++(0.8,0) |- (objective.north);
+\draw[flow] (student.east) -- ++(7mm,0) |- (objective.west);
+\coordinate (objfan) at ($(objective.north west)+(-9mm,0)$);
+\draw[flow] (logits.east) -- ++(6mm,0) |- (objfan) -- (objective.north west);
+\draw[flow] (features.east) -- ++(8mm,0) |- ($(objective.north west)+(-5mm,0)$) -- (objective.north west);
+\draw[flow] (relations.east) -- ++(10mm,0) |- ($(objective.north east)+(-5mm,0)$) -- (objective.north east);
 
 \node[signal] (labels) at (12.8,-3.1) {Ground-truth labels};
 \draw[->] (labels) -- (objective);
 \end{tikzpicture}%
 }
-\caption{Author's schematic view of the common knowledge-distillation pathways discussed in the literature, including logit, feature, cross-layer, and relational transfer \cite{hinton2015distilling,romero2015fitnets,zagoruyko2017paying,yim2017fsp,park2019rkd,chen2021semckd}.}
+\caption{My schematic view of the common knowledge-distillation pathways discussed in the literature, including logit, feature, cross-layer, and relational transfer \cite{hinton2015distilling,romero2015fitnets,zagoruyko2017paying,yim2017fsp,park2019rkd,chen2021semckd}.}
 \label{fig:theory-kd}
 \end{figure}
 }
@@ -354,7 +362,7 @@
 \node[rightcell, right=8mm of r4b] (r4c) {Structural KD for detector\\feature spaces};
 \end{tikzpicture}%
 }
-\caption{Author's schematic taxonomy of detector-specific distillation signals, summarizing the main routes emphasized by the object-detection KD literature \cite{wang2019distilling,dai2021gid,guo2021defeat,kang2021icd,du2021frs,li2022rank,yang2022focal,derijk2022structural}.}
+\caption{My schematic taxonomy of detector-specific distillation signals, summarizing the main routes emphasized by the object-detection KD literature \cite{wang2019distilling,dai2021gid,guo2021defeat,kang2021icd,du2021frs,li2022rank,yang2022focal,derijk2022structural}.}
 \label{fig:theory-detection-kd}
 \end{figure}
 }
@@ -399,7 +407,7 @@
 \draw[->] (ssim) -- (total);
 \end{tikzpicture}%
 }
-\caption{Author's schematic of SSIM-based distillation over aligned FPN features, following the structural-similarity decomposition of luminance, contrast, and structure and its adaptation to detector feature matching \cite{wang2004ssim,wang2003msssim,derijk2022structural}.}
+\caption{My schematic of SSIM-based distillation over aligned FPN features, following the structural-similarity decomposition of luminance, contrast, and structure and its adaptation to detector feature matching \cite{wang2004ssim,wang2003msssim,derijk2022structural}.}
 \label{fig:theory-ssim}
 \end{figure}
 }
@@ -423,15 +431,17 @@
     lvlT/.style={draw=blue!70!black, fill=blue!10, minimum width=20mm, minimum height=7mm, align=center},
     lvlS/.style={draw=green!60!black, fill=green!10, minimum width=20mm, minimum height=7mm, align=center},
     lvlSel/.style={draw=orange!80!black, fill=orange!18, minimum width=20mm, minimum height=7mm, align=center},
-    summ/.style={draw, rounded corners=2pt, fill=gray!12, minimum width=31mm, minimum height=9mm, align=center}
+    summ/.style={draw, rounded corners=2pt, fill=gray!12, minimum width=31mm, minimum height=9mm, align=center},
+    flow/.style={->, rounded corners=3pt}
 ]
 
 \node[draw, rounded corners=2pt, fill=gray!10, minimum width=24mm, minimum height=10mm, align=center] (input) at (0,0) {Input image\\batch $x$};
 
 \node[teacher] (tback) at (3.4,4.0) {Frozen teacher\\ResNet-101/50};
 \node[proc] (tfpn) at (6.5,4.0) {Teacher FPN\\top-down + lateral};
-\draw[->] (input.east) -- ++(0.8,0) |- (tback.west);
-\draw[->] (tback) -- (tfpn);
+\coordinate (mainSplit) at ($(input.east)+(8mm,0)$);
+\draw[flow] (input.east) -- (mainSplit) |- (tback.west);
+\draw[flow] (tback.east) -- (tfpn.west);
 \begin{scope}[shift={(1.45,4.75)}, line width=0.8pt, draw=blue!75!black]
   \draw (0,0.32) -- (0,-0.32);
   \draw (-0.28,0.16) -- (0.28,-0.16);
@@ -443,8 +453,8 @@
 
 \node[student] (sback) at (3.4,-4.2) {Trainable student\\ResNet-18/50};
 \node[proc] (sfpn) at (6.5,-4.2) {Student FPN\\top-down + lateral};
-\draw[->] (input.east) -- ++(0.8,0) |- (sback.west);
-\draw[->] (sback) -- (sfpn);
+\draw[flow] (input.east) -- (mainSplit) |- (sback.west);
+\draw[flow] (sback.east) -- (sfpn.west);
 \begin{scope}[shift={(1.45,-3.45)}]
   \fill[orange!85!red] (0,-0.28)
     .. controls (-0.22,-0.02) and (-0.24,0.22) .. (0,0.42)
@@ -458,79 +468,81 @@
 
 
 \node[proc] (head) at (13.8,-8.2) {RetinaNet detection heads\\classification + box regression};
-\draw[->] (sfpn.east) -- ++(0.9,0) |- (head.west);
+\draw[flow] (sfpn.east) -- ++(8mm,0) |- (head.west);
 
 \node[lvlT] (tp3) at (10.0,6.4) {$P_3^T$\\fine};
 \node[lvlSel] (tp4) at (10.0,4.8) {$P_4^T$\\selected};
 \node[lvlSel] (tp5) at (10.0,3.2) {$P_5^T$\\selected};
 \node[lvlT] (tp6) at (10.0,1.6) {$P_6^T$\\coarse};
 \node[lvlT] (tp7) at (10.0,0.0) {$P_7^T$\\coarse};
-\draw[->] (tfpn.east) -- ++(0.8,0) |- (tp3.west);
-\draw[->] (tfpn.east) -- ++(0.8,0) |- (tp4.west);
-\draw[->] (tfpn.east) -- ++(0.8,0) |- (tp5.west);
-\draw[->] (tfpn.east) -- ++(0.8,0) |- (tp6.west);
-\draw[->] (tfpn.east) -- ++(0.8,0) |- (tp7.west);
+\coordinate (tfan) at ($(tfpn.east)+(8mm,0)$);
+\draw[flow] (tfpn.east) -- (tfan) |- (tp3.west);
+\draw[flow] (tfpn.east) -- (tfan) |- (tp4.west);
+\draw[flow] (tfpn.east) -- (tfan) |- (tp5.west);
+\draw[flow] (tfpn.east) -- (tfan) |- (tp6.west);
+\draw[flow] (tfpn.east) -- (tfan) |- (tp7.west);
 
 \node[lvlS] (sp3) at (10.0,-0.8) {$P_3^S$\\fine};
 \node[lvlSel] (sp4) at (10.0,-2.4) {$P_4^S$\\selected};
 \node[lvlSel] (sp5) at (10.0,-4.0) {$P_5^S$\\selected};
 \node[lvlS] (sp6) at (10.0,-5.6) {$P_6^S$\\coarse};
 \node[lvlS] (sp7) at (10.0,-7.2) {$P_7^S$\\coarse};
-\draw[->] (sfpn.east) -- ++(0.8,0) |- (sp3.west);
-\draw[->] (sfpn.east) -- ++(0.8,0) |- (sp4.west);
-\draw[->] (sfpn.east) -- ++(0.8,0) |- (sp5.west);
-\draw[->] (sfpn.east) -- ++(0.8,0) |- (sp6.west);
-\draw[->] (sfpn.east) -- ++(0.8,0) |- (sp7.west);
+\coordinate (sfan) at ($(sfpn.east)+(8mm,0)$);
+\draw[flow] (sfpn.east) -- (sfan) |- (sp3.west);
+\draw[flow] (sfpn.east) -- (sfan) |- (sp4.west);
+\draw[flow] (sfpn.east) -- (sfan) |- (sp5.west);
+\draw[flow] (sfpn.east) -- (sfan) |- (sp6.west);
+\draw[flow] (sfpn.east) -- (sfan) |- (sp7.west);
 
 \node[note] at (10.0,-10) {Only levels in $\mathcal{P}$ contribute to the hierarchical SSIM term};
 
 \node[proc] (align4) at (13.9,4.8) {Level alignment\\resize if needed};
 \node[proc] (align5) at (13.9,1.6) {Level alignment\\resize if needed};
-\draw[->] (tp4.east) -- (align4.west);
-\draw[->] (sp4.east) -- ++(0.8,0) |- (align4.south west);
-\draw[->] (tp5.east) -- ++(0.8,0) |- (align5.north west);
-\draw[->] (sp5.east) -- (align5.west);
+\draw[flow] (tp4.east) -- (align4.west);
+\draw[flow] (sp4.east) -- ++(7mm,0) |- ($(align4.south west)+(0,1mm)$);
+\draw[flow] (tp5.east) -- ++(7mm,0) |- ($(align5.north west)+(0,-1mm)$);
+\draw[flow] (sp5.east) -- (align5.west);
 
 \node[proc] (norm4) at (17.7,4.8) {Channel normalization\\$\hat{F}^{(l)}$};
 \node[proc] (norm5) at (17.7,1.6) {Channel normalization\\$\hat{F}^{(l)}$};
-\draw[->] (align4) -- (norm4);
-\draw[->] (align5) -- (norm5);
+\draw[flow] (align4.east) -- (norm4.west);
+\draw[flow] (align5.east) -- (norm5.west);
 
 \node[proc] (avg4) at (21.3,4.8) {Channel average\\$A_t^{(l)}, A_s^{(l)}$};
 \node[proc] (avg5) at (21.3,1.6) {Channel average\\$A_t^{(l)}, A_s^{(l)}$};
-\draw[->] (norm4) -- (avg4);
-\draw[->] (norm5) -- (avg5);
+\draw[flow] (norm4.east) -- (avg4.west);
+\draw[flow] (norm5.east) -- (avg5.west);
 
 \node[stat] (ssimblk4) at (27.0,4.8) {SSIM block at level $l=4$\\[1mm]};
 \node[loss] (pool4) at (31.8,4.8) {spatial average\\$\bar{\mathrm{SSIM}}_4$};
 \node[loss] (lvl4) at (36.0,4.8) {level loss\\$\alpha_4(1-\bar{\mathrm{SSIM}}_4)$};
-\draw[->] (avg4.east) -- (ssimblk4.west);
-\draw[->] (ssimblk4.east) -- (pool4.west);
-\draw[->] (pool4.east) -- (lvl4.west);
+\draw[flow] (avg4.east) -- (ssimblk4.west);
+\draw[flow] (ssimblk4.east) -- (pool4.west);
+\draw[flow] (pool4.east) -- (lvl4.west);
 
 \node[stat] (ssimblk5) at (27.0,1.6) {SSIM block at level $l=5$\\[1mm]};
 \node[loss] (pool5) at (31.8,1.6) {spatial average\\$\bar{\mathrm{SSIM}}_5$};
 \node[loss] (lvl5) at (36.0,1.6) {level loss\\$\alpha_5(1-\bar{\mathrm{SSIM}}_5)$};
-\draw[->] (avg5.east) -- (ssimblk5.west);
-\draw[->] (ssimblk5.east) -- (pool5.west);
-\draw[->] (pool5.east) -- (lvl5.west);
+\draw[flow] (avg5.east) -- (ssimblk5.west);
+\draw[flow] (ssimblk5.east) -- (pool5.west);
+\draw[flow] (pool5.east) -- (lvl5.west);
 
 \node[summ] (etc) at (36.0,-1.3) {$\cdots$ additional selected\\levels $l \in \mathcal{P}$};
 \node[loss] (sum) at (41.4,3.0) {Hierarchical KD term\\$\mathcal{L}_{kd}=\sum_{l\in\mathcal{P}}\alpha_l(1-\bar{\mathrm{SSIM}}_l)$};
-\draw[->] (lvl4.east) -- ++(0.9,0) |- ([yshift=1.5mm]sum.west);
-\draw[->] (lvl5.east) -- ++(0.9,0) |- ([yshift=-1.5mm]sum.west);
-\draw[->] (etc.east) -- ++(1.0,0) |- (sum.south west);
+\draw[flow] (lvl4.east) -- ++(10mm,0) |- ([yshift=2mm]sum.west);
+\draw[flow] (lvl5.east) -- ++(10mm,0) |- ([yshift=-2mm]sum.west);
+\draw[flow] (etc.east) -- ++(10mm,0) |- (sum.south west);
 
 \node[detloss] (det) at (41.4,-3.8) {Detection loss block\\$\mathcal{L}_{det}=\mathcal{L}_{cls}+\mathcal{L}_{box}$};
 \node[loss] (total) at (41.4,-7.2) {Final student objective\\$\mathcal{L}=\mathcal{L}_{det}+\lambda \mathcal{L}_{kd}$};
-\draw[->] (sum) -- (total);
-\draw[->] (det) -- (total);
-\draw[->] (head.east) -- ++(2.4,0) |- (det.west);
+\draw[flow] (sum.south) -- (total.north);
+\draw[flow] (det.south) -- (total.north east);
+\draw[flow] (head.east) -- ++(14mm,0) |- (det.west);
 
-\draw[->, dashed, red!80!black, line width=0.95pt] (total.west) -- ++(-1.6,0) |- ([xshift=1mm]head.east);
-\draw[->, dashed, red!80!black, line width=0.95pt] ([xshift=-1mm]head.west) -- ++(-1.2,0) |- ([xshift=1mm]sfpn.east);
-\draw[->, dashed, red!80!black, line width=0.95pt] (sum.west) -- ++(-1.4,0) |- ([xshift=1mm]sp4.east);
-\draw[->, dashed, red!80!black, line width=0.95pt] (sum.west) -- ++(-1.4,0) |- ([xshift=1mm]sp5.east);
+\draw[->, dashed, red!80!black, line width=0.95pt, rounded corners=3pt] (total.west) -- ++(-12mm,0) |- ([xshift=2mm]head.east);
+\draw[->, dashed, red!80!black, line width=0.95pt, rounded corners=3pt] ([xshift=-2mm]head.west) -- ++(-10mm,0) |- ([xshift=2mm]sfpn.east);
+\draw[->, dashed, red!80!black, line width=0.95pt, rounded corners=3pt] (sum.west) -- ++(-12mm,0) |- ([xshift=2mm]sp4.east);
+\draw[->, dashed, red!80!black, line width=0.95pt, rounded corners=3pt] (sum.west) -- ++(-12mm,0) |- ([xshift=2mm]sp5.east);
 \node[note, text=red!75!black] at (38.2,-10) {Dashed red arrows indicate gradient flow through the student branch only.};
 \node[note, text=blue!75!black] at (38.0,-11) {No gradient is propagated through the frozen teacher pathway.};
 
@@ -624,5 +636,8 @@ Supervised by: \thesissupervisor\\
 \addcontentsline{toc}{chapter}{Bibliography}
 \bibliographystyle{./style/myabbrvnat}
 \bibliography{./references/thesisbib}
+
+\appendix
+\include{./appendices/appendix}
 
 \end{document}
