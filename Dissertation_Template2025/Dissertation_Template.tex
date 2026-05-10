@@ -404,6 +404,143 @@
 \end{figure}
 }
 
+\newcommand{\FPNSSIMMethodFigure}{
+\begin{figure}[t]
+\centering
+\resizebox{0.94\textwidth}{!}{%
+\begin{tikzpicture}[
+    font=\small,
+    >=Latex,
+    line width=0.85pt,
+    model/.style={draw, rounded corners=2pt, minimum width=28mm, minimum height=9mm, align=center},
+    teacher/.style={model, fill=blue!12},
+    student/.style={model, fill=green!12},
+    proc/.style={draw, rounded corners=2pt, fill=orange!16, minimum width=25mm, minimum height=9mm, align=center},
+    stat/.style={draw, rounded corners=2pt, fill=violet!12, minimum width=28mm, minimum height=18mm, align=center},
+    loss/.style={draw, rounded corners=2pt, fill=red!12, minimum width=24mm, minimum height=9mm, align=center},
+    detloss/.style={draw, rounded corners=2pt, fill=red!18, minimum width=26mm, minimum height=9mm, align=center},
+    note/.style={font=\scriptsize, align=center},
+    lvlT/.style={draw=blue!70!black, fill=blue!10, minimum width=20mm, minimum height=7mm, align=center},
+    lvlS/.style={draw=green!60!black, fill=green!10, minimum width=20mm, minimum height=7mm, align=center},
+    lvlSel/.style={draw=orange!80!black, fill=orange!18, minimum width=20mm, minimum height=7mm, align=center},
+    summ/.style={draw, rounded corners=2pt, fill=gray!12, minimum width=31mm, minimum height=9mm, align=center}
+]
+
+\node[draw, rounded corners=2pt, fill=gray!10, minimum width=24mm, minimum height=10mm, align=center] (input) at (0,0) {Input image\\batch $x$};
+
+\node[teacher] (tback) at (3.4,4.0) {Frozen teacher\\ResNet-101/50};
+\node[proc] (tfpn) at (6.5,4.0) {Teacher FPN\\top-down + lateral};
+\draw[->] (input.east) -- ++(0.8,0) |- (tback.west);
+\draw[->] (tback) -- (tfpn);
+\begin{scope}[shift={(1.45,4.75)}, line width=0.8pt, draw=blue!75!black]
+  \draw (0,0.32) -- (0,-0.32);
+  \draw (-0.28,0.16) -- (0.28,-0.16);
+  \draw (-0.28,-0.16) -- (0.28,0.16);
+  \draw (-0.32,0) -- (0.32,0);
+  \draw (0,0) circle (0.08);
+\end{scope}
+\node[note, text=blue!75!black, anchor=west] at (1.75,4.75) {frozen};
+
+\node[student] (sback) at (3.4,-4.2) {Trainable student\\ResNet-18/50};
+\node[proc] (sfpn) at (6.5,-4.2) {Student FPN\\top-down + lateral};
+\draw[->] (input.east) -- ++(0.8,0) |- (sback.west);
+\draw[->] (sback) -- (sfpn);
+\begin{scope}[shift={(1.45,-3.45)}]
+  \fill[orange!85!red] (0,-0.28)
+    .. controls (-0.22,-0.02) and (-0.24,0.22) .. (0,0.42)
+    .. controls (0.08,0.2) and (0.18,0.12) .. (0.15,-0.02)
+    .. controls (0.30,0.08) and (0.34,-0.12) .. (0,-0.28) -- cycle;
+  \fill[orange!30!yellow] (0.02,-0.12)
+    .. controls (-0.08,0.02) and (-0.05,0.15) .. (0.03,0.24)
+    .. controls (0.07,0.12) and (0.12,0.03) .. (0.02,-0.12) -- cycle;
+\end{scope}
+\node[note, text=orange!85!red, anchor=west] at (1.75,-3.45) {trainable};
+
+
+\node[proc] (head) at (13.8,-8.2) {RetinaNet detection heads\\classification + box regression};
+\draw[->] (sfpn.east) -- ++(0.9,0) |- (head.west);
+
+\node[lvlT] (tp3) at (10.0,6.4) {$P_3^T$\\fine};
+\node[lvlSel] (tp4) at (10.0,4.8) {$P_4^T$\\selected};
+\node[lvlSel] (tp5) at (10.0,3.2) {$P_5^T$\\selected};
+\node[lvlT] (tp6) at (10.0,1.6) {$P_6^T$\\coarse};
+\node[lvlT] (tp7) at (10.0,0.0) {$P_7^T$\\coarse};
+\draw[->] (tfpn.east) -- ++(0.8,0) |- (tp3.west);
+\draw[->] (tfpn.east) -- ++(0.8,0) |- (tp4.west);
+\draw[->] (tfpn.east) -- ++(0.8,0) |- (tp5.west);
+\draw[->] (tfpn.east) -- ++(0.8,0) |- (tp6.west);
+\draw[->] (tfpn.east) -- ++(0.8,0) |- (tp7.west);
+
+\node[lvlS] (sp3) at (10.0,-0.8) {$P_3^S$\\fine};
+\node[lvlSel] (sp4) at (10.0,-2.4) {$P_4^S$\\selected};
+\node[lvlSel] (sp5) at (10.0,-4.0) {$P_5^S$\\selected};
+\node[lvlS] (sp6) at (10.0,-5.6) {$P_6^S$\\coarse};
+\node[lvlS] (sp7) at (10.0,-7.2) {$P_7^S$\\coarse};
+\draw[->] (sfpn.east) -- ++(0.8,0) |- (sp3.west);
+\draw[->] (sfpn.east) -- ++(0.8,0) |- (sp4.west);
+\draw[->] (sfpn.east) -- ++(0.8,0) |- (sp5.west);
+\draw[->] (sfpn.east) -- ++(0.8,0) |- (sp6.west);
+\draw[->] (sfpn.east) -- ++(0.8,0) |- (sp7.west);
+
+\node[note] at (10.0,-10) {Only levels in $\mathcal{P}$ contribute to the hierarchical SSIM term};
+
+\node[proc] (align4) at (13.9,4.8) {Level alignment\\resize if needed};
+\node[proc] (align5) at (13.9,1.6) {Level alignment\\resize if needed};
+\draw[->] (tp4.east) -- (align4.west);
+\draw[->] (sp4.east) -- ++(0.8,0) |- (align4.south west);
+\draw[->] (tp5.east) -- ++(0.8,0) |- (align5.north west);
+\draw[->] (sp5.east) -- (align5.west);
+
+\node[proc] (norm4) at (17.7,4.8) {Channel normalization\\$\hat{F}^{(l)}$};
+\node[proc] (norm5) at (17.7,1.6) {Channel normalization\\$\hat{F}^{(l)}$};
+\draw[->] (align4) -- (norm4);
+\draw[->] (align5) -- (norm5);
+
+\node[proc] (avg4) at (21.3,4.8) {Channel average\\$A_t^{(l)}, A_s^{(l)}$};
+\node[proc] (avg5) at (21.3,1.6) {Channel average\\$A_t^{(l)}, A_s^{(l)}$};
+\draw[->] (norm4) -- (avg4);
+\draw[->] (norm5) -- (avg5);
+
+\node[stat] (ssimblk4) at (27.0,4.8) {SSIM block at level $l=4$\\[1mm]};
+\node[loss] (pool4) at (31.8,4.8) {spatial average\\$\bar{\mathrm{SSIM}}_4$};
+\node[loss] (lvl4) at (36.0,4.8) {level loss\\$\alpha_4(1-\bar{\mathrm{SSIM}}_4)$};
+\draw[->] (avg4.east) -- (ssimblk4.west);
+\draw[->] (ssimblk4.east) -- (pool4.west);
+\draw[->] (pool4.east) -- (lvl4.west);
+
+\node[stat] (ssimblk5) at (27.0,1.6) {SSIM block at level $l=5$\\[1mm]};
+\node[loss] (pool5) at (31.8,1.6) {spatial average\\$\bar{\mathrm{SSIM}}_5$};
+\node[loss] (lvl5) at (36.0,1.6) {level loss\\$\alpha_5(1-\bar{\mathrm{SSIM}}_5)$};
+\draw[->] (avg5.east) -- (ssimblk5.west);
+\draw[->] (ssimblk5.east) -- (pool5.west);
+\draw[->] (pool5.east) -- (lvl5.west);
+
+\node[summ] (etc) at (36.0,-1.3) {$\cdots$ additional selected\\levels $l \in \mathcal{P}$};
+\node[loss] (sum) at (41.4,3.0) {Hierarchical KD term\\$\mathcal{L}_{kd}=\sum_{l\in\mathcal{P}}\alpha_l(1-\bar{\mathrm{SSIM}}_l)$};
+\draw[->] (lvl4.east) -- ++(0.9,0) |- ([yshift=1.5mm]sum.west);
+\draw[->] (lvl5.east) -- ++(0.9,0) |- ([yshift=-1.5mm]sum.west);
+\draw[->] (etc.east) -- ++(1.0,0) |- (sum.south west);
+
+\node[detloss] (det) at (41.4,-3.8) {Detection loss block\\$\mathcal{L}_{det}=\mathcal{L}_{cls}+\mathcal{L}_{box}$};
+\node[loss] (total) at (41.4,-7.2) {Final student objective\\$\mathcal{L}=\mathcal{L}_{det}+\lambda \mathcal{L}_{kd}$};
+\draw[->] (sum) -- (total);
+\draw[->] (det) -- (total);
+\draw[->] (head.east) -- ++(2.4,0) |- (det.west);
+
+\draw[->, dashed, red!80!black, line width=0.95pt] (total.west) -- ++(-1.6,0) |- ([xshift=1mm]head.east);
+\draw[->, dashed, red!80!black, line width=0.95pt] ([xshift=-1mm]head.west) -- ++(-1.2,0) |- ([xshift=1mm]sfpn.east);
+\draw[->, dashed, red!80!black, line width=0.95pt] (sum.west) -- ++(-1.4,0) |- ([xshift=1mm]sp4.east);
+\draw[->, dashed, red!80!black, line width=0.95pt] (sum.west) -- ++(-1.4,0) |- ([xshift=1mm]sp5.east);
+\node[note, text=red!75!black] at (38.2,-10) {Dashed red arrows indicate gradient flow through the student branch only.};
+\node[note, text=blue!75!black] at (38.0,-11) {No gradient is propagated through the frozen teacher pathway.};
+
+\end{tikzpicture}%
+}
+\caption{Schematic of the proposed FPN-based hierarchical SSIM distillation pipeline. Teacher and student first construct aligned RetinaNet pyramid features, selected FPN levels are matched, normalized, reduced to response maps, and compared through local SSIM statistics before level-wise weighted aggregation into the final knowledge-distillation term \cite{lin2017fpn,wang2004ssim,wang2003msssim,derijk2022structural}.}
+\label{fig:method-fpn-ssim}
+\end{figure}
+}
+
 \usepackage{style/myfootnote}
 \makesavenoteenv{longtable}
 \usepackage{vmargin}
@@ -428,7 +565,7 @@ University of Surrey\\
 \centering
 \includegraphics[width=0.6\textwidth]{logo.png}\\
 \vspace{2em}
-\textit{School of Computer Science and Electrical and Electronic Engineering}\\
+\textit{School of Computer Science and Electronic Engineering}\\
 Faculty of Engineering and Physical Sciences\\
 University of Surrey\\
 Guildford, Surrey, GU2 7XH, UK\\
@@ -436,7 +573,7 @@ Guildford, Surrey, GU2 7XH, UK\\
 \thesisdate\\
 Supervised by: \thesissupervisor\\
 \vspace{\stretch{1}}}
-\textcopyright \thesisauthor\ \thesisyear
+\textcopyright\ \thesisyear\ \thesisauthor
 \end{center}
 \pagenumbering{roman}
 
@@ -454,7 +591,7 @@ Supervised by: \thesissupervisor\\
 \addcontentsline{toc}{chapter}{Abstract}
 \input{chapters/abstract}
 
-\begin{spacing}{0.1}
+\begin{spacing}{1.0}
 \tableofcontents
 \end{spacing}
 
@@ -462,6 +599,12 @@ Supervised by: \thesissupervisor\\
 \addcontentsline{toc}{chapter}{List of figures}
 \begin{spacing}{1.4}
 \listoffigures
+\end{spacing}
+
+\clearpage
+\addcontentsline{toc}{chapter}{List of tables}
+\begin{spacing}{1.4}
+\listoftables
 \end{spacing}
 
 \newpage
@@ -475,14 +618,11 @@ Supervised by: \thesissupervisor\\
 \include{./chapters/theory}
 \include{./chapters/technical}
 \include{./chapters/technical2}
+\include{./chapters/experiments}
 \include{./chapters/conclusions}
 
 \addcontentsline{toc}{chapter}{Bibliography}
 \bibliographystyle{./style/myabbrvnat}
 \bibliography{./references/thesisbib}
-
-\clearpage
-\addcontentsline{toc}{chapter}{Appendix}
-\include{./appendices/appendix}
 
 \end{document}

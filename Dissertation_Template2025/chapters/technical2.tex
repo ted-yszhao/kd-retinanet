@@ -2,6 +2,8 @@
 
 This chapter details how the proposed RetinaNet distillation method is optimized in practice. It describes the standard detection objective, the extraction and alignment of FPN features, the SSIM-based structural loss, and the evaluation protocol that will be used for later experiments.
 
+
+
 \section{RetinaNet Detection Loss}
 
 RetinaNet combines classification and box regression losses over dense anchors \cite{lin2017focal}. The classification branch uses focal loss to address the extreme imbalance between background and object anchors. The regression branch predicts bounding-box offsets for positive anchors. In the implementation, the student model returns a dictionary of detection losses, and these terms are summed to form
@@ -18,9 +20,13 @@ For an image batch, the teacher and student each produce a set of FPN features
 \end{equation}
 where $\mathcal{P}$ indexes the selected pyramid levels and each feature tensor has shape $B \times 256 \times H_l \times W_l$ after FPN projection. The implementation currently allows distillation on a configurable subset of feature keys, with a default choice focusing on one intermediate pyramid level. Because the comparison is performed after the FPN, the channel dimension is already matched across teacher and student; only the spatial dimensions may occasionally need alignment. When teacher and student produce feature maps with different spatial sizes at the selected level, the student feature is resized by bilinear interpolation to match the teacher resolution before computing the distillation loss.
 
-\section{SSIM-Based Feature Distillation}
+\section{Hierarchical SSIM Knowledge Distillation Loss}
 
-The key contribution of the method is a multi-scale structural similarity loss applied to FPN feature maps. For each selected pyramid level $l$, the teacher feature $F_t^{(l)}$ and student feature $F_s^{(l)}$ are first normalized channel-wise using their spatial mean and standard deviation:
+The key contribution of the method is a hierarchical structural distillation loss applied to aligned FPN feature maps. The term \emph{hierarchical} is used here in the detector sense: teacher and student are compared not at a single feature tensor, but across a set of pyramid levels that together form RetinaNet's multiscale representation hierarchy. This design is consistent with the role of FPN in dense detection and with the broader structural distillation perspective developed for detector feature spaces \cite{lin2017fpn,wang2004ssim,wang2003msssim,derijk2022structural}. Instead of forcing the student to match teacher activations pointwise, the loss rewards agreement in local luminance, contrast, and structural organization within each selected pyramid level.
+
+\FPNSSIMMethodFigure
+
+For each selected pyramid level $l$, the teacher feature $F_t^{(l)}$ and student feature $F_s^{(l)}$ are first normalized channel-wise using their spatial mean and standard deviation:
 \begin{equation}
 \hat{F}^{(l)} = \frac{F^{(l)} - \mu(F^{(l)})}{\sigma(F^{(l)}) + \epsilon},
 \end{equation}
@@ -33,21 +39,69 @@ A_t^{(l)} = \frac{1}{C}\sum_{c=1}^{C}\hat{F}_{t,c}^{(l)}.
 \end{equation}
 Consequently, the SSIM comparison is applied to response maps in $\mathbb{R}^{B \times 1 \times H_l \times W_l}$ rather than to the full channel stack. This step reduces sensitivity to channel-wise scale variation and focuses the comparison on shared spatial organization.
 
-The distillation term is then defined as a weighted sum of SSIM losses across the selected pyramid levels:
+Let $x=A_s^{(l)}$ and $y=A_t^{(l)}$ denote the student and teacher response maps at pyramid level $l$. Following Wang et al.\ \cite{wang2004ssim}, SSIM is computed from local statistics over a window centered at spatial location $p$. If $w$ denotes a normalized Gaussian window, the local means are
 \begin{equation}
-\mathcal{L}_{kd} = \sum_{l \in \mathcal{P}} \alpha_l \, \mathcal{L}_{SSIM}\left(A_s^{(l)}, A_t^{(l)}\right),
+\mu_x(p) = \sum_{q \in \mathcal{N}(p)} w(q-p)x(q), \qquad
+\mu_y(p) = \sum_{q \in \mathcal{N}(p)} w(q-p)y(q),
 \end{equation}
-where $\alpha_l$ is the user-defined weight for pyramid level $l$. In practice, the implementation uses the SSIM loss provided by Kornia with a configurable window size, set to $7$ by default. The use of SSIM encourages the student to match teacher feature structure in terms of local intensity patterns, contrast relationships, and spatial correlation. This differs from standard $\ell_1$ or $\ell_2$ matching, which penalize activation differences pointwise and may ignore higher-order local organization.
+and the corresponding local variances and covariance are
+\begin{equation}
+\sigma_x^2(p) = \sum_{q \in \mathcal{N}(p)} w(q-p)\left(x(q)-\mu_x(p)\right)^2,
+\end{equation}
+\begin{equation}
+\sigma_y^2(p) = \sum_{q \in \mathcal{N}(p)} w(q-p)\left(y(q)-\mu_y(p)\right)^2,
+\end{equation}
+\begin{equation}
+\sigma_{xy}(p) = \sum_{q \in \mathcal{N}(p)} w(q-p)\left(x(q)-\mu_x(p)\right)\left(y(q)-\mu_y(p)\right).
+\end{equation}
+The local structural similarity at location $p$ is then
+\begin{equation}
+\mathrm{SSIM}_l(p)=
+\frac{\left(2\mu_x(p)\mu_y(p)+C_1\right)\left(2\sigma_{xy}(p)+C_2\right)}
+{\left(\mu_x(p)^2+\mu_y(p)^2+C_1\right)\left(\sigma_x^2(p)+\sigma_y^2(p)+C_2\right)},
+\end{equation}
+where $C_1$ and $C_2$ are stability constants introduced to avoid numerical instability when the local denominators are small \cite{wang2004ssim}. This formulation can be interpreted as combining luminance agreement with contrast-structure agreement, which is precisely why SSIM is more sensitive to spatial organization than a plain $\ell_1$ or $\ell_2$ penalty.
+
+To obtain a level-wise distillation objective, the local SSIM map is averaged over all valid spatial positions in the level:
+\begin{equation}
+\bar{\mathrm{SSIM}}_l = \frac{1}{|\Omega_l|}\sum_{p \in \Omega_l}\mathrm{SSIM}_l(p),
+\end{equation}
+where $\Omega_l$ denotes the set of spatial positions in pyramid level $l$. The corresponding loss for that level is written as
+\begin{equation}
+\mathcal{L}_{\mathrm{HSSIM}}^{(l)} = 1 - \bar{\mathrm{SSIM}}_l.
+\end{equation}
+Using $1-\bar{\mathrm{SSIM}}_l$ rather than raw SSIM turns structural agreement into a quantity minimized jointly with the detection loss. This convention is common in optimization settings where SSIM is used as a differentiable similarity objective rather than as a pure evaluation measure \cite{wang2004ssim,nilsson2020understandssim,venkataramanan2021ssimguide}.
+
+The full hierarchical distillation term is then defined as a weighted sum across the selected pyramid levels:
+\begin{equation}
+\mathcal{L}_{kd} = \sum_{l \in \mathcal{P}} \alpha_l \, \mathcal{L}_{\mathrm{HSSIM}}^{(l)}
+= \sum_{l \in \mathcal{P}} \alpha_l \left(1-\bar{\mathrm{SSIM}}_l\right),
+\end{equation}
+where $\alpha_l \ge 0$ is the user-defined weight for pyramid level $l$ and typically satisfies $\sum_{l \in \mathcal{P}} \alpha_l = 1$ when normalized. The hierarchical formulation is important because different FPN levels encode different object scales and contextual ranges. A teacher feature at a coarse level such as $P_6$ or $P_7$ carries broad semantic context, whereas finer levels preserve more localized structure for smaller objects. Summing over $l \in \mathcal{P}$ therefore transfers structural knowledge across the detector's multiscale hierarchy rather than privileging only one resolution, which is conceptually aligned with both FPN and multi-scale SSIM reasoning \cite{lin2017fpn,wang2003msssim,derijk2022structural}.
+
+In practice, the implementation uses the SSIM loss provided by Kornia, a differentiable computer vision library for PyTorch \cite{riba2020kornia}, with a configurable window size set to $7$ by default. The chosen level set $\mathcal{P}$ and weights $\alpha_l$ are configurable, and the current baseline emphasizes one intermediate level for a conservative first experiment. Even in that reduced setting, however, the mathematical formulation above remains hierarchical because it is defined over an arbitrary subset of aligned pyramid levels and can be extended naturally to a denser supervision scheme. This makes the loss a principled methodological object rather than a one-off engineering heuristic.
 
 \section{Training Procedure}
 
 Training proceeds as follows. For each minibatch, the student performs a standard forward pass with detection targets to obtain RetinaNet losses. The teacher then processes the same images in evaluation mode without gradient tracking to produce feature targets. Student FPN features are extracted from the same transformed inputs, the SSIM-based distillation loss is computed, and the combined loss in Eq.~(\ref{eq:total-loss}) is backpropagated only through the student. This keeps optimization efficient and ensures that the teacher remains fixed.
 
-The framework supports both distillation training and student-only training through configuration. When knowledge distillation is disabled, the system reduces to ordinary RetinaNet optimization. When distillation is enabled, the optimizer is applied only to the trainable student parameters. The current implementation supports AdamW and SGD, periodic COCO evaluation, TensorBoard logging, and per-epoch subset sampling. Subset sampling is useful for controlled experiments because it reduces computational cost while preserving the same training code path across runs.
+At the implementation level, the training loop is configuration-driven. A central experiment configuration specifies the dataset paths, loader settings, teacher and student architecture choices, KD keys and weights, optimization hyperparameters, logging directories, and evaluation settings. This design matters methodologically because it keeps student-only training and distilled training on the same software path. If the teacher configuration is set to \texttt{null} or KD is disabled, the system reduces automatically to ordinary RetinaNet optimization. If KD is enabled, the same loop is used, but the model wrapper returns a dictionary containing the total loss, the pure detection loss, the KD loss, and the native RetinaNet loss terms. In both cases the optimizer is constructed only from parameters whose \texttt{requires\_grad} flag is true, so no teacher weights are updated accidentally during backpropagation.
+
+The choice to optimize only the student parameters is not merely standard practice; it keeps the interpretation of the experiments clear. Any performance improvement can be attributed to the training-time effect of teacher supervision rather than to joint adaptation of the two branches. In addition, the training script saves only the final trainable model state dictionary. For distilled runs this means the stored checkpoint corresponds to the student alone rather than to a composite teacher-student package. This reflects the actual deployment objective of knowledge distillation, where the teacher is a temporary source of supervision rather than part of the final inference graph.
+
+The training framework also implements per-epoch subset sampling. Let $D$ denote the full training set and let $\rho \in (0,1]$ be the configured sample ratio. At the start of epoch $e$, a random subset $D_e \subseteq D$ is sampled with $|D_e| = \max(1,\lfloor \rho |D| \rfloor)$. When re-sampling is enabled, the pseudo-random seed is shifted by epoch index so that a different subset is drawn at each epoch while the process remains reproducible. This mechanism is practically important under limited compute. It preserves the same model code path, the same batching logic, and the same optimizer behaviour as full-data training, yet lowers the per-epoch cost enough to make several controlled runs feasible within a rented-GPU budget.
+
+Optimization statistics are logged throughout training. The loop maintains running averages of all reported losses, prints progress through a \texttt{tqdm} progress bar, and writes scalar values to TensorBoard at every optimization step. If evaluation is enabled, the chosen COCO metrics are logged at the end of each evaluation epoch, and the same event files can later be used for post-hoc analysis of convergence behaviour. This is especially useful in a dissertation context because it allows the written analysis to be grounded in persistent training traces rather than in one-off terminal output.
 
 \section{Evaluation Protocol}
 
 Evaluation is conducted with COCO-style metrics using \texttt{pycocotools}, including overall bounding-box mean Average Precision (mAP), mAP at IoU thresholds $0.50$ and $0.75$, and scale-specific scores for small, medium, and large objects \cite{lin2014coco}. During evaluation, the framework can report either teacher or student performance, but the primary dissertation setting focuses on the student branch because the teacher is only a training-time aid. Comparisons should therefore be made between a student trained from scratch and the same student trained with teacher-guided feature distillation.
+
+The evaluation code first gathers detector predictions for each image in the validation loader, then converts those predictions into the format expected by COCO evaluation. For every detected box, the model output $(x_1,y_1,x_2,y_2)$ is transformed into the COCO representation $(x,y,w,h)$ together with the predicted class label and confidence score. The resulting prediction list is then passed to \texttt{COCOeval}, which computes the standard detection summary metrics. This conversion step is important because it ensures that my reported results are directly comparable to standard COCO-style detector evaluation rather than to a custom metric defined only within this project.
+
+The primary score used in later analysis is the overall bounding-box mAP averaged over IoU thresholds from $0.50$ to $0.95$ in increments of $0.05$, as in the COCO protocol \cite{lin2014coco}. However, mAP alone is not sufficient to understand the effect of the distillation loss. AP$_{50}$ is more sensitive to coarse object classification and approximate localization, whereas AP$_{75}$ demands stricter localization quality. The scale-specific metrics AP$_S$, AP$_M$, and AP$_L$ are also important because distillation is applied to a multiscale feature hierarchy; a method that improves only one object-size regime would tell a different story from one that benefits the detector broadly. For this reason, I later interpret the full metric profile rather than only one scalar score.
+
+Another useful feature of the implementation is that the same evaluation routine can inspect either branch when the model is a teacher-student wrapper. Although the main analysis focuses on student performance, this design choice makes it possible to verify that the teacher remains a competent detector and to isolate whether problems in a run come from the student optimization rather than from the evaluation pipeline itself. In practice, evaluating the student at every epoch and storing the resulting metrics in TensorBoard also makes it much easier to diagnose instability. A run that appears to train numerically but never produces non-zero AP can be identified quickly and investigated as a methodological failure case rather than being hidden by reporting only final checkpoints.
 
 \section{Summary}
 

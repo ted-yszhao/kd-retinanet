@@ -1,0 +1,57 @@
+{
+  "data": {
+    "root": "../data/train2017",
+    "ann_file": "datasets/coco/annotations/instances_train2017.json"
+  },
+  "eval_data": {
+    "root": "datasets/coco/val2017",
+    "ann_file": "datasets/coco/annotations/instances_val2017.json"
+  },
+  "loader": {
+    "batch_size": 6,
+    "shuffle": true,
+    "num_workers": 2
+  },
+  "teacher": null,
+  "student": {
+    "num_classes": 91,
+    "backbone_name": "resnet50",
+    "detector_weights": null,
+    "backbone_weights": "DEFAULT",
+    "trainable_backbone_layers": 3
+  },
+  "kd": {
+    "enabled": false,
+    "keys": ["2"],
+    "weights": [1.0],
+    "window_size": 7,
+    "kd_weight": 0.0
+  },
+  "optimizer": {
+    "name": "adamw",
+    "lr": 0.0001
+  },
+  "scheduler": {
+    "name": "none",
+    "step_size": 8,
+    "gamma": 0.1,
+    "t_max": 10,
+    "eta_min": 0.0
+  },
+  "training": {
+    "device": "auto",
+    "num_epochs": 10,
+    "sample_ratio": 0.3,
+    "resample_each_epoch": true,
+    "sample_seed": 42,
+    "run": "vanilla_retinanet_resnet50",
+    "log_dir": "runs",
+    "checkpoint_dir": "checkpoints"
+  },
+  "evaluation": {
+    "enabled": true,
+    "branch": "student",
+    "interval": 1,
+    "metric": "bbox_mAP"
+  }
+}
