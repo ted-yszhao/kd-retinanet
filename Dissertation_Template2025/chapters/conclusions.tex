@@ -1,6 +1,6 @@
 \chapter{Conclusions}
 
-In this project, I set out to study whether knowledge distillation can improve an efficient one-stage object detector without increasing inference-time cost. My proposed answer was a RetinaNet teacher-student framework in which a stronger frozen detector supervises a smaller student through an SSIM-based structural loss applied to aligned FPN features. Across this report, I developed that idea from first principles, connected it to the relevant literature, implemented it in a configuration-driven training system, and tested it through multiple COCO-style experiments under a realistic single-GPU budget.
+In this project, I set out to study whether knowledge distillation can improve an efficient one-stage object detector without increasing inference-time cost \cite{hinton2015distilling}. My proposed answer was a RetinaNet teacher-student framework in which a stronger frozen detector supervises a smaller student through an SSIM-based structural loss applied to aligned FPN features \cite{lin2017fpn,lin2017focal,wang2004ssim,derijk2022structural}. Across this report, I developed that idea from first principles, connected it to the relevant literature, implemented it in a configuration-driven training system, and tested it through multiple COCO-style experiments under a realistic single-GPU budget \cite{lin2014coco}.
 
 \section{Achievement Against Objectives}
 

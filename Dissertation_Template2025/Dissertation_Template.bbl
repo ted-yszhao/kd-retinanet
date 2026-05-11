@@ -1,4 +1,4 @@
-\begin{thebibliography}{60}
+\begin{thebibliography}{61}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
@@ -282,6 +282,13 @@ Liu, Z. , Lin, Y. , Cao, Y. , Hu, H. , Wei, Y. , Zhang, Z. , Lin, S. , and Guo,
 \newblock In \emph{Proceedings of the IEEE/CVF International Conference on
   Computer Vision (ICCV)}, 2021.
 \newblock URL \url{https://arxiv.org/abs/2103.14030}.
+
+\bibitem[Loshchilov and Hutter(2019)]{loshchilov2019adamw}
+Loshchilov, I.  and Hutter, F. .
+\newblock Decoupled weight decay regularization.
+\newblock \emph{International Conference on Learning Representations (ICLR)},
+  2019.
+\newblock URL \url{https://arxiv.org/abs/1711.05101}.
 
 \bibitem[Mirzadeh et~al.(2020)Mirzadeh, Farajtabar, Li, Levine, Matsukawa, and
   Ghasemzadeh]{mirzadeh2020ta}

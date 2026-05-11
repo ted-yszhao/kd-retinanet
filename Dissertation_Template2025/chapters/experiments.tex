@@ -4,11 +4,11 @@ This chapter reports the empirical evidence available from the implemented train
 
 \section{Experimental Setup}
 
-All experiments follow the same basic RetinaNet training framework introduced in Chapters 3 and 4. The dataset interface uses COCO-format annotations, and evaluation is conducted on the COCO 2017 validation split through \texttt{pycocotools}. In the current repository, each evaluated run reports metrics on $5000$ validation images, which matches the standard \texttt{val2017} evaluation partition. The training annotations are drawn from the corresponding COCO training set, while images and labels are converted into the dictionary format expected by \texttt{torchvision}'s RetinaNet implementation. Bounding boxes are transformed from the COCO convention $(x,y,w,h)$ to corner coordinates $(x_{\min},y_{\min},x_{\max},y_{\max})$, degenerate boxes are filtered, and images are converted to floating-point tensors in the range $[0,1]$ before they enter the detector.
+All experiments follow the same basic RetinaNet training framework introduced in Chapters 3 and 4 \cite{lin2017focal}. The dataset interface uses COCO-format annotations, and evaluation is conducted on the COCO 2017 validation split through \texttt{pycocotools} \cite{lin2014coco}. In the current repository, each evaluated run reports metrics on $5000$ validation images, which matches the standard \texttt{val2017} evaluation partition. The training annotations are drawn from the corresponding COCO training set, while images and labels are converted into the dictionary format expected by \texttt{torchvision}'s RetinaNet implementation. Bounding boxes are transformed from the COCO convention $(x,y,w,h)$ to corner coordinates $(x_{\min},y_{\min},x_{\max},y_{\max})$, degenerate boxes are filtered, and images are converted to floating-point tensors in the range $[0,1]$ before they enter the detector.
 
-The training configuration is intentionally conservative because the project is constrained by access to a single rented NVIDIA Tesla V100 GPU. All reported runs use a batch size of $6$, an AdamW optimizer with learning rate $10^{-4}$, no learning-rate scheduler, and $10$ training epochs. To keep the experiment affordable while still exposing the student to a broad part of the training distribution, the code samples $30\%$ of the training dataset in each epoch and re-samples that subset across epochs using a deterministic seed schedule. This means the student does not simply revisit the same small subset repeatedly; instead, it gradually sees a wider portion of the data distribution while the overall wall-clock cost remains manageable. Evaluation is performed at every epoch, and the resulting COCO metrics are recorded together with training losses.
+The training configuration is intentionally conservative because the project is constrained by access to a single rented NVIDIA Tesla V100 GPU \cite{nvidia2017v100}. All reported runs use a batch size of $6$, an AdamW optimizer with learning rate $10^{-4}$ \cite{loshchilov2019adamw}, no learning-rate scheduler, and $10$ training epochs. To keep the experiment affordable while still exposing the student to a broad part of the training distribution, the code samples $30\%$ of the training dataset in each epoch and re-samples that subset across epochs using a deterministic seed schedule. This means the student does not simply revisit the same small subset repeatedly; instead, it gradually sees a wider portion of the data distribution while the overall wall-clock cost remains manageable. Evaluation is performed at every epoch, and the resulting COCO metrics are recorded together with training losses.
 
-When distillation is enabled, the teacher branch is frozen throughout training and the optimizer only updates student parameters. The current knowledge distillation configuration uses a window size of $7$, a distillation weight $\lambda=0.5$, and a single selected internal feature key \texttt{"2"} with weight $1.0$. In implementation terms, this corresponds to supervising one intermediate FPN representation rather than the full pyramid. Although that choice does not exhaust the space of hierarchical supervision strategies, it provides a controlled initial experiment that isolates whether even a modest amount of structural teacher guidance can improve the student.
+When distillation is enabled, the teacher branch is frozen throughout training and the optimizer only updates student parameters. The current knowledge distillation configuration uses a window size of $7$, a distillation weight $\lambda=0.5$, and a single selected internal feature key \texttt{"2"} with weight $1.0$. In implementation terms, this corresponds to supervising one intermediate FPN representation rather than the full pyramid \cite{lin2017fpn,derijk2022structural}. Although that choice does not exhaust the space of hierarchical supervision strategies, it provides a controlled initial experiment that isolates whether even a modest amount of structural teacher guidance can improve the student.
 
 The experiments available in the repository are summarized in Table~\ref{tab:exp-configs}. Together they support three distinct comparison questions. First, can a compact \texttt{ResNet-18} RetinaNet benefit from a stronger \texttt{ResNet-101} teacher? Second, does the same student benefit from a more moderate \texttt{ResNet-50} teacher? Third, what performance is achievable when the student itself has higher capacity, as in the \texttt{ResNet-50} student distilled from \texttt{ResNet-101}? The first question is my central research target; the latter two help reveal whether the method behaves consistently across different teacher-student capacity gaps.
 
@@ -64,9 +64,7 @@ This resource profile clarifies why the \texttt{ResNet-18} setting is the most m
 
 \section{Quantitative Results}
 
-Table~\ref{tab:main-results} reports the final COCO validation metrics logged for each available run. Several conclusions emerge immediately. The first is that the baseline \texttt{ResNet-18} RetinaNet is capable of learning a meaningful detector under the reduced training schedule, reaching a final bounding-box mAP of $0.1515$. This baseline is important because it shows that the shortened single-GPU training regime is not so weak that no detector can learn. The second is that distillation from a \texttt{ResNet-101} teacher into the same \texttt{ResNet-18} student improves the final score to $0.1636$, corresponding to an absolute gain of $0.0121$ mAP over the non-distilled baseline. In relative terms, this is an improvement of approximately $8.0\%$ over the baseline score. The gain is not confined to one metric: AP$_{50}$, AP$_{75}$, and the small, medium, and large object metrics all improve as well.
-
-\begin{table}[p]
+\begin{table}[t]
 \centering
 \small
 \resizebox{\textwidth}{!}{%
@@ -80,13 +78,15 @@ ResNet-50 $\rightarrow$ ResNet-18 KD & 0.0000 & $-0.1515$ & 0.0000 & 0.0000 & 0.
 \hline
 \textbf{ResNet-101 $\rightarrow$ ResNet-18 KD (proposed compact model)} & \textbf{0.1636} & \textbf{+0.0121} & \textbf{0.2741} & \textbf{0.1701} & \textbf{0.0809} & \textbf{0.1759} & \textbf{0.2157} \\
 \hline
-ResNet-101 $\rightarrow$ ResNet-50 KD & 0.1954 & 0.3229 & 0.2038 & 0.1105 & 0.2104 & 0.2437 \\
+ResNet-101 $\rightarrow$ ResNet-50 KD & 0.1954 & n/a & 0.3229 & 0.2038 & 0.1105 & 0.2104 & 0.2437 \\
 \hline
 \end{tabular}
 }
 \caption{Final COCO validation metrics extracted from the recorded experiment outputs in the repository. All scores are for the student branch evaluated on $5000$ validation images. The proposed compact model, \texttt{ResNet-101} $\rightarrow$ \texttt{ResNet-18} KD, improves on the vanilla \texttt{ResNet-18} baseline across every reported COCO metric while keeping the same deployment-sized student architecture.}
 \label{tab:main-results}
 \end{table}
+
+Table~\ref{tab:main-results} reports the final COCO validation metrics logged for each available run. Several conclusions emerge immediately. The first is that the baseline \texttt{ResNet-18} RetinaNet is capable of learning a meaningful detector under the reduced training schedule, reaching a final bounding-box mAP of $0.1515$. This baseline is important because it shows that the shortened single-GPU training regime is not so weak that no detector can learn. The second is that distillation from a \texttt{ResNet-101} teacher into the same \texttt{ResNet-18} student improves the final score to $0.1636$, corresponding to an absolute gain of $0.0121$ mAP over the non-distilled baseline. In relative terms, this is an improvement of approximately $8.0\%$ over the baseline score. The gain is not confined to one metric: AP$_{50}$, AP$_{75}$, and the small, medium, and large object metrics all improve as well.
 
 The improvement from \texttt{ResNet-101} to \texttt{ResNet-18} is particularly relevant because it matches my core motivation: transferring knowledge from a substantially larger detector into a compact student. The gain in AP$_{50}$ is $0.0197$, the gain in AP$_{75}$ is $0.0132$, and the gain in AP$_L$ for large objects is $0.0252$. Medium objects improve by $0.0128$, while small objects improve by $0.0057$. These patterns suggest that structural feature supervision is helping the student most clearly on medium and large objects, where preserving coherent multiscale structure in the FPN may be especially beneficial. The smaller but still positive improvement for AP$_S$ is also consistent with the broader difficulty of small-object detection on COCO, where limited pixels and dense clutter make gains harder to obtain even when representation quality improves.
 
@@ -98,41 +98,18 @@ The most striking negative result is the \texttt{ResNet-50} teacher to \texttt{R
 
 \section{Training Dynamics and Metric-Level Interpretation}
 
-To make the comparison between the compact baseline and the successful distilled compact student more explicit, Table~\ref{tab:epoch-curves} reports the epoch-wise mAP values for the vanilla \texttt{ResNet-18} run and the \texttt{ResNet-101} $\rightarrow$ \texttt{ResNet-18} run. Several features of the training dynamics are worth noting. First, both runs begin near zero, which is expected under dense detector training on COCO. Second, the distilled student is ahead of the baseline at the first epoch and preserves that advantage through most of training. Third, the margin is not perfectly monotonic: the two runs come quite close at epochs $3$ and $4$, the distilled student opens a clearer lead at epochs $5$ and $7$, and then briefly dips at epoch $8$ before recovering strongly in the last two epochs.
-
-\begin{table}[t]
-\centering
-\small
-\begin{tabular}{|c|c|c|c|}
-\hline
-Epoch & Vanilla ResNet-18 & ResNet-101 $\rightarrow$ ResNet-18 KD & Absolute delta \\
-\hline
-1 & 0.0053 & 0.0075 & +0.0022 \\
-\hline
-2 & 0.0202 & 0.0296 & +0.0094 \\
-\hline
-3 & 0.0364 & 0.0377 & +0.0013 \\
-\hline
-4 & 0.0724 & 0.0721 & -0.0003 \\
-\hline
-5 & 0.0664 & 0.0947 & +0.0283 \\
-\hline
-6 & 0.1014 & 0.1096 & +0.0082 \\
-\hline
-7 & 0.0988 & 0.1198 & +0.0210 \\
-\hline
-8 & 0.1213 & 0.0929 & -0.0284 \\
-\hline
-9 & 0.1412 & 0.1298 & -0.0114 \\
-\hline
-10 & 0.1515 & 0.1636 & +0.0121 \\
-\hline
-\end{tabular}
-\caption{Epoch-wise validation mAP for the compact baseline and the strongest compact-student distillation run. Values are extracted from the recorded scalar outputs stored in the repository.}
-\label{tab:epoch-curves}
-\end{table}
+To make the comparison between the compact baseline and the successful distilled compact student more explicit, it is useful to summarize the epoch-wise mAP trajectory directly in the discussion. The vanilla \texttt{ResNet-18} student rises from $0.0053$ mAP at epoch $1$ to $0.1515$ at epoch $10$, while the distilled \texttt{ResNet-101} $\rightarrow$ \texttt{ResNet-18} run moves from $0.0075$ to $0.1636$ over the same schedule. The distilled student is already ahead at epoch $1$, reaches $0.0947$ by epoch $5$ compared with $0.0664$ for the baseline, and despite a temporary drop at epoch $8$ it still recovers to finish above the student-only model. Several features of the training dynamics are worth noting. First, both runs begin near zero, which is expected under dense detector training on COCO. Second, the distilled student is ahead of the baseline at the first epoch and preserves that advantage through most of training. Third, the margin is not perfectly monotonic: the two runs come quite close at epochs $3$ and $4$, the distilled student opens a clearer lead at epochs $5$ and $7$, and then briefly dips at epoch $8$ before recovering strongly in the last two epochs.
 
 This pattern suggests that the KD objective does not simply add a constant offset to the optimization. Instead, it changes the learning trajectory. A useful way to interpret the temporary dip is to view the detector as balancing two partially competing demands: it must fit the detection labels well enough to produce boxes and classes, and it must also preserve the teacher's structural organization in the chosen feature space. Early in training, that extra structure may regularize the student by preventing it from overfitting unstable detector-head signals. Mid-training, the same constraint may occasionally slow adaptation if the teacher target and the student's task-specific gradients point in slightly different directions. By the end of training, however, the student appears to recover and retain the net benefit. The final outcome matters more than the temporary fluctuation, but the fluctuation itself is scientifically informative because it highlights why KD weight scheduling is likely to be important in later work.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{../images/kd_loss_curves.pdf}
+\caption{Epoch-averaged training losses for the two successful \texttt{ResNet-101}-teacher runs, computed from the recorded TensorBoard scalars \texttt{train/loss\_total} and \texttt{train/loss\_kd}. Each run is split into a broad-scale total-loss panel and a zoomed KD-loss panel so that the KD descent remains visually readable. In both cases the total student objective decreases steadily while the KD term also trends downward across epochs, indicating that structural supervision acts as a persistent auxiliary constraint rather than dominating optimization. The \texttt{ResNet-50} student also reaches a slightly lower final total loss than the compact \texttt{ResNet-18} student, which is consistent with the larger student's greater capacity to satisfy the detection and distillation objectives simultaneously.}
+\label{fig:kd-loss-curves}
+\end{figure}
+
+Figure~\ref{fig:kd-loss-curves} adds a complementary view of the same optimization process by focusing directly on the logged loss terms. For the compact \texttt{ResNet-101} $\rightarrow$ \texttt{ResNet-18} run, the epoch-averaged total loss falls from approximately $1.61$ in the first epoch to $0.88$ by epoch $10$, while the KD term decreases more gently from about $0.394$ to $0.331$. The \texttt{ResNet-101} $\rightarrow$ \texttt{ResNet-50} run follows a very similar pattern but finishes slightly lower, with total loss reaching about $0.83$ and KD loss about $0.309$ at the final epoch. This is a useful diagnostic result because it shows that the KD branch remains active throughout training instead of collapsing immediately to zero, yet it also stays well below the total objective. In practical terms, the student is learning under sustained teacher guidance without the auxiliary loss overwhelming the detector's own task loss.
 
 The metric profile also deserves a more granular interpretation than ``higher is better.'' AP$_{50}$ improves more strongly than AP$_{75}$, which indicates that part of the gain comes from better object recall or more consistently plausible detections at moderately strict overlap. At the same time, AP$_{75}$ also rises, so the method is not merely increasing loose matches; it is also contributing to stricter localization. The improvement in AP$_L$ is the largest among the scale-specific metrics, suggesting that the chosen feature key and SSIM signal may currently favour broader object structures and richer context more than extremely fine-scale spatial detail. This is a plausible consequence of performing structural supervision on an intermediate FPN representation rather than on the finest-resolution level.
 
@@ -162,7 +139,7 @@ From a practical perspective, the most important case remains the one that worke
 
 \section{Practical Implications for Reproducibility and Deployment}
 
-One of the strengths of my work is that its empirical claims are tightly coupled to reproducible artefacts. The experimental evidence is not described abstractly; it is recoverable from the repository through configuration files, saved metric traces, checkpoints, and a central training entry point. This matters because detector distillation work can easily become difficult to audit when the code path for baselines differs from the code path for KD runs, or when intermediate decisions are hidden inside ad hoc scripts. Here, the same training framework supports both student-only and teacher-guided training, reducing the chance that an apparent improvement is caused by unrelated engineering differences. For an MSc project, this level of procedural clarity is itself a meaningful contribution.
+One of the strengths of my work is that its empirical claims are tightly coupled to reproducible artefacts. The experimental evidence is not described abstractly; it is recoverable from the repository through configuration files, saved metric traces, checkpoints, and a central training entry point. For transparency, that implementation is available publicly at \url{https://github.com/ted-yszhao/kd-retinanet}. This matters because detector distillation work can easily become difficult to audit when the code path for baselines differs from the code path for KD runs, or when intermediate decisions are hidden inside ad hoc scripts. Here, the same training framework supports both student-only and teacher-guided training, reducing the chance that an apparent improvement is caused by unrelated engineering differences. For an MSc project, this level of procedural clarity is itself a meaningful contribution.
 
 The deployment implications are also concrete. The strongest compact-student result improves mAP while preserving the same saved student checkpoint size as the non-distilled baseline. This means the training-time cost of adding a teacher does not leak into the inference-time package. For deployment-oriented detector compression, that separation is essential. If the method had improved accuracy only by keeping part of the teacher at inference time, it would no longer solve the stated efficiency problem. Because the implementation saves only the student state dictionary, the method preserves the intended teacher-train, student-deploy workflow exactly.
 

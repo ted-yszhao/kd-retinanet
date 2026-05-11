@@ -4,7 +4,7 @@ Object detection is a core problem in computer vision with applications in auton
 
 One-stage detectors are especially attractive in this context because they offer a clean trade-off between accuracy and speed. RetinaNet is a particularly influential one-stage detector because it combines a Feature Pyramid Network (FPN) with focal loss to address extreme foreground-background imbalance during dense prediction \cite{lin2017fpn,lin2017focal}. Even so, RetinaNet performance depends strongly on the backbone capacity. A detector with a deep \texttt{ResNet-101} feature extractor typically yields better representations than a detector with a lighter \texttt{ResNet-18} backbone, but the latter is preferable when deployment efficiency matters. A natural question is therefore whether the representational strength of a larger RetinaNet can be transferred into a smaller one without reproducing the full computational cost at inference time.
 
-\ArchitectureFigure{Overview of the teacher-student RetinaNet distillation architecture used throughout this report.}{fig:architecture-overview}
+\ArchitectureFigure{Overview of the teacher-student RetinaNet distillation architecture used throughout this report. The same input image is processed by a frozen teacher RetinaNet and a smaller trainable student RetinaNet; the student is optimized with the standard detection loss plus an SSIM-based feature distillation loss on aligned FPN representations, while only the compact student is kept for deployment.}{fig:architecture-overview}
 
 \section{Background and Context}
 
@@ -20,7 +20,7 @@ My overall method follows a straightforward teacher-train, student-deploy workfl
 
 The distillation interface is placed after the Feature Pyramid Network rather than at the raw backbone or final-logit level. This choice is important because RetinaNet already organizes object evidence across multiple semantic scales in the FPN, making it a natural place to compare teacher and student representations. At the selected pyramid levels, teacher and student features are spatially aligned if necessary, normalized channel-wise, reduced to response maps, and then compared with an SSIM-based structural objective. The total training objective is the sum of the standard detection loss and the weighted structural distillation term.
 
-Methodologically, I also emphasize reproducibility and fair comparison. The experiments are driven by configuration files rather than ad hoc code edits, the same training path supports both baseline and distilled runs, and evaluation is carried out with standard COCO metrics. This means the later experimental chapters can focus on the effect of the distillation design itself rather than on confounding differences between training pipelines.
+Methodologically, I also emphasize reproducibility and fair comparison. The experiments are driven by configuration files rather than ad hoc code edits, the same training path supports both baseline and distilled runs, and evaluation is carried out with standard COCO metrics. The implementation and recorded artefacts are maintained in the public project repository at \url{https://github.com/ted-yszhao/kd-retinanet}. This means the later experimental chapters can focus on the effect of the distillation design itself rather than on confounding differences between training pipelines.
 
 \section{Objectives}
 
