@@ -1,6 +1,6 @@
 \chapter{Codebase and Configuration Manual}
 
-This appendix records the structure of the submitted repository so that the implementation behind the dissertation can be inspected without relying on informal notes. I include it as a practical manual rather than as another narrative chapter. Its purpose is to show how the code is organized, where the experiment definitions live, and how the reported runs map to concrete files. The public source repository for this dissertation project is \url{https://github.com/ted-yszhao/kd-retinanet}.
+This appendix records the structure of the submitted repository so that the implementation behind the dissertation can be inspected without relying on informal notes. It is included as a practical manual rather than as another narrative chapter. Its purpose is to show how the code is organized, where the experiment definitions live, and how the reported runs map to concrete files. The public source repository for this dissertation project is \url{https://github.com/ted-yszhao/kd-retinanet}.
 
 \section{Top-Level Repository Layout}
 
@@ -63,7 +63,7 @@ All main experiments are defined through JSON files in \texttt{configs/}. The fi
     \item \texttt{evaluation}: validation toggle, branch selection, evaluation interval, and primary reported metric.
 \end{itemize}
 
-This schema is one of the most important practical features of the repository. It allows me to change teacher capacity, student capacity, KD strength, or sampling policy without modifying the training code itself.
+This schema is one of the most important practical features of the repository. It allows teacher capacity, student capacity, KD strength, or sampling policy to be changed without modifying the training code itself.
 
 \section{Current Experiment Configurations}
 

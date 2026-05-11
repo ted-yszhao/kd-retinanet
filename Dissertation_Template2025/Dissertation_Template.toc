@@ -24,31 +24,31 @@
 \contentsline {section}{\numberline {4.1}RetinaNet Detection Loss}{24}{section.4.1}%
 \contentsline {section}{\numberline {4.2}FPN Feature Extraction}{24}{section.4.2}%
 \contentsline {section}{\numberline {4.3}Hierarchical SSIM Knowledge Distillation Loss}{25}{section.4.3}%
-\contentsline {section}{\numberline {4.4}Training Procedure}{27}{section.4.4}%
+\contentsline {section}{\numberline {4.4}Training Procedure}{28}{section.4.4}%
 \contentsline {section}{\numberline {4.5}Evaluation Protocol}{29}{section.4.5}%
 \contentsline {section}{\numberline {4.6}Summary}{30}{section.4.6}%
 \contentsline {chapter}{\numberline {5}Experiments and Discussion}{31}{chapter.5}%
 \contentsline {section}{\numberline {5.1}Experimental Setup}{31}{section.5.1}%
 \contentsline {section}{\numberline {5.2}Implementation-Level Resource Profile}{32}{section.5.2}%
-\contentsline {section}{\numberline {5.3}Quantitative Results}{33}{section.5.3}%
+\contentsline {section}{\numberline {5.3}Quantitative Results}{34}{section.5.3}%
 \contentsline {section}{\numberline {5.4}Training Dynamics and Metric-Level Interpretation}{35}{section.5.4}%
-\contentsline {section}{\numberline {5.5}Discussion}{37}{section.5.5}%
-\contentsline {subsection}{\numberline {5.5.1}What the Positive Result Suggests}{37}{subsection.5.5.1}%
+\contentsline {section}{\numberline {5.5}Discussion}{38}{section.5.5}%
+\contentsline {subsection}{\numberline {5.5.1}What the Positive Result Suggests}{38}{subsection.5.5.1}%
 \contentsline {subsection}{\numberline {5.5.2}What the Failure Case Suggests}{38}{subsection.5.5.2}%
 \contentsline {subsection}{\numberline {5.5.3}Relationship Between Capacity and Distillation}{39}{subsection.5.5.3}%
-\contentsline {section}{\numberline {5.6}Practical Implications for Reproducibility and Deployment}{39}{section.5.6}%
-\contentsline {section}{\numberline {5.7}Limitations and Threats to Validity}{40}{section.5.7}%
+\contentsline {section}{\numberline {5.6}Practical Implications for Reproducibility and Deployment}{40}{section.5.6}%
+\contentsline {section}{\numberline {5.7}Limitations and Threats to Validity}{41}{section.5.7}%
 \contentsline {section}{\numberline {5.8}Summary}{41}{section.5.8}%
-\contentsline {chapter}{\numberline {6}Conclusions}{42}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Achievement Against Objectives}{42}{section.6.1}%
-\contentsline {section}{\numberline {6.2}Future Work}{43}{section.6.2}%
-\contentsline {section}{\numberline {6.3}Critical Appraisal}{43}{section.6.3}%
-\contentsline {chapter}{Bibliography}{45}{section.6.3}%
-\contentsline {chapter}{\numberline {A}Codebase and Configuration Manual}{52}{appendix.A}%
-\contentsline {section}{\numberline {A.1}Top-Level Repository Layout}{52}{section.A.1}%
-\contentsline {section}{\numberline {A.2}Training Entry Point and Execution Flow}{52}{section.A.2}%
-\contentsline {section}{\numberline {A.3}Implementation Modules in \texttt {src/}}{53}{section.A.3}%
-\contentsline {section}{\numberline {A.4}Configuration File Structure}{54}{section.A.4}%
-\contentsline {section}{\numberline {A.5}Current Experiment Configurations}{55}{section.A.5}%
-\contentsline {section}{\numberline {A.6}Config Fields Most Relevant to Reproducibility}{55}{section.A.6}%
-\contentsline {section}{\numberline {A.7}Saved Artefacts and Supporting Files}{56}{section.A.7}%
+\contentsline {chapter}{\numberline {6}Conclusions}{43}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Achievement Against Objectives}{43}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Future Work}{44}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Critical Appraisal}{45}{section.6.3}%
+\contentsline {chapter}{Bibliography}{47}{section.6.3}%
+\contentsline {chapter}{\numberline {A}Codebase and Configuration Manual}{54}{appendix.A}%
+\contentsline {section}{\numberline {A.1}Top-Level Repository Layout}{54}{section.A.1}%
+\contentsline {section}{\numberline {A.2}Training Entry Point and Execution Flow}{54}{section.A.2}%
+\contentsline {section}{\numberline {A.3}Implementation Modules in \texttt {src/}}{55}{section.A.3}%
+\contentsline {section}{\numberline {A.4}Configuration File Structure}{56}{section.A.4}%
+\contentsline {section}{\numberline {A.5}Current Experiment Configurations}{57}{section.A.5}%
+\contentsline {section}{\numberline {A.6}Config Fields Most Relevant to Reproducibility}{57}{section.A.6}%
+\contentsline {section}{\numberline {A.7}Saved Artefacts and Supporting Files}{58}{section.A.7}%

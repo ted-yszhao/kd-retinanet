@@ -415,139 +415,62 @@
 \newcommand{\FPNSSIMMethodFigure}{
 \begin{figure}[htp]
 \centering
-\resizebox{0.94\textwidth}{!}{%
 \begin{tikzpicture}[
-    font=\small,
+    x=1cm,
+    y=1cm,
+    font=\normalsize,
     >=Latex,
-    line width=0.85pt,
-    model/.style={draw, rounded corners=2pt, minimum width=28mm, minimum height=9mm, align=center},
-    teacher/.style={model, fill=blue!12},
-    student/.style={model, fill=green!12},
-    proc/.style={draw, rounded corners=2pt, fill=orange!16, minimum width=25mm, minimum height=9mm, align=center},
-    stat/.style={draw, rounded corners=2pt, fill=violet!12, minimum width=28mm, minimum height=18mm, align=center},
-    loss/.style={draw, rounded corners=2pt, fill=red!12, minimum width=24mm, minimum height=9mm, align=center},
-    detloss/.style={draw, rounded corners=2pt, fill=red!18, minimum width=26mm, minimum height=9mm, align=center},
-    note/.style={font=\scriptsize, align=center},
-    lvlT/.style={draw=blue!70!black, fill=blue!10, minimum width=20mm, minimum height=7mm, align=center},
-    lvlS/.style={draw=green!60!black, fill=green!10, minimum width=20mm, minimum height=7mm, align=center},
-    lvlSel/.style={draw=orange!80!black, fill=orange!18, minimum width=20mm, minimum height=7mm, align=center},
-    summ/.style={draw, rounded corners=2pt, fill=gray!12, minimum width=31mm, minimum height=9mm, align=center},
+    line width=0.9pt,
+    box/.style={draw, rounded corners=2pt, align=center, minimum height=11mm, inner sep=4pt},
+    teacher/.style={box, fill=blue!10, text width=34mm},
+    student/.style={box, fill=green!10, text width=34mm},
+    feat/.style={box, fill=orange!12, text width=32mm},
+    proc/.style={box, fill=orange!8, text width=46mm},
+    loss/.style={box, fill=red!10, text width=40mm},
+    detloss/.style={box, fill=red!14, text width=40mm},
+    note/.style={align=center, font=\small},
     flow/.style={->, rounded corners=3pt}
 ]
 
-\node[draw, rounded corners=2pt, fill=gray!10, minimum width=24mm, minimum height=10mm, align=center] (input) at (0,0) {Input image\\batch $x$};
+\node[box, fill=gray!8, text width=24mm] (input) at (0,8.8) {Input image\\batch $x$};
 
-\node[teacher] (tback) at (3.4,4.0) {Frozen teacher\\ResNet-101/50};
-\node[proc] (tfpn) at (6.5,4.0) {Teacher FPN\\top-down + lateral};
-\coordinate (mainSplit) at ($(input.east)+(8mm,0)$);
-\draw[flow] (input.east) -- (mainSplit) |- (tback.west);
-\draw[flow] (tback.east) -- (tfpn.west);
-\begin{scope}[shift={(1.45,4.75)}, line width=0.8pt, draw=blue!75!black]
-  \draw (0,0.32) -- (0,-0.32);
-  \draw (-0.28,0.16) -- (0.28,-0.16);
-  \draw (-0.28,-0.16) -- (0.28,0.16);
-  \draw (-0.32,0) -- (0.32,0);
-  \draw (0,0) circle (0.08);
-\end{scope}
-\node[note, text=blue!75!black, anchor=west] at (1.75,4.75) {frozen};
+\node[teacher] (teacherbox) at (-4.1,6.4) {Frozen teacher\\RetinaNet-FPN\\ResNet-101/50};
+\node[student] (studentbox) at (4.1,6.4) {Trainable student\\RetinaNet-FPN\\ResNet-18/50};
+\coordinate (split) at (0,7.5);
+\draw[flow] (input.south) -- (split);
+\draw[flow] (split) -| (teacherbox.north);
+\draw[flow] (split) -| (studentbox.north);
 
-\node[student] (sback) at (3.4,-4.2) {Trainable student\\ResNet-18/50};
-\node[proc] (sfpn) at (6.5,-4.2) {Student FPN\\top-down + lateral};
-\draw[flow] (input.east) -- (mainSplit) |- (sback.west);
-\draw[flow] (sback.east) -- (sfpn.west);
-\begin{scope}[shift={(1.45,-3.45)}]
-  \fill[orange!85!red] (0,-0.28)
-    .. controls (-0.22,-0.02) and (-0.24,0.22) .. (0,0.42)
-    .. controls (0.08,0.2) and (0.18,0.12) .. (0.15,-0.02)
-    .. controls (0.30,0.08) and (0.34,-0.12) .. (0,-0.28) -- cycle;
-  \fill[orange!30!yellow] (0.02,-0.12)
-    .. controls (-0.08,0.02) and (-0.05,0.15) .. (0.03,0.24)
-    .. controls (0.07,0.12) and (0.12,0.03) .. (0.02,-0.12) -- cycle;
-\end{scope}
-\node[note, text=orange!85!red, anchor=west] at (1.75,-3.45) {trainable};
+\node[feat] (tfeat) at (-4.1,4.0) {Selected teacher\\FPN levels\\$P_l^T,\; l\in\mathcal{P}$};
+\node[feat] (sfeat) at (0.0,4.0) {Selected student\\FPN levels\\$P_l^S,\; l\in\mathcal{P}$};
+\node[box, fill=orange!10, text width=40mm] (heads) at (4.6,4.0) {Student RetinaNet heads\\classification + box regression};
+\draw[flow] (teacherbox.south) -- (tfeat.north);
+\coordinate (studentsplit) at ($(studentbox.south)+(0,-0.5)$);
+\draw[flow] (studentbox.south) -- (studentsplit);
+\draw[flow] (studentsplit) -| (sfeat.north);
+\draw[flow] (studentsplit) -- (heads.north);
 
+\node[proc] (perlevel) at (-2.0,1.4) {Per selected level $l$:\\[0.8mm]align spatial size if needed\\normalize feature channels\\average to response maps\\compute windowed SSIM to obtain $\bar{\mathrm{SSIM}}_l$};
+\draw[flow] (tfeat.south) -- ++(0,-0.4) -| ([xshift=-12mm]perlevel.north);
+\draw[flow] (sfeat.south) -- ++(0,-0.4) -| ([xshift=12mm]perlevel.north);
 
-\node[proc] (head) at (13.8,-8.2) {RetinaNet detection heads\\classification + box regression};
-\draw[flow] (sfpn.east) -- ++(8mm,0) |- (head.west);
+\node[loss] (levelterm) at (-2.0,-1.2) {Level contribution\\$\alpha_l\!\left(1-\bar{\mathrm{SSIM}}_l\right)$};
+\node[note] (repeatnote) at (-2.0,-2.4) {Repeat for all selected levels $l \in \mathcal{P}$};
+\node[loss, text width=46mm] (kdterm) at (-2.0,-4.1) {Hierarchical KD term\\$\mathcal{L}_{kd}=\sum_{l\in\mathcal{P}}\alpha_l\left(1-\bar{\mathrm{SSIM}}_l\right)$};
+\draw[flow] (perlevel.south) -- (levelterm.north);
+\draw[flow] (levelterm.south) -- (repeatnote.north);
+\draw[flow] (repeatnote.south) -- (kdterm.north);
 
-\node[lvlT] (tp3) at (10.0,6.4) {$P_3^T$\\fine};
-\node[lvlSel] (tp4) at (10.0,4.8) {$P_4^T$\\selected};
-\node[lvlSel] (tp5) at (10.0,3.2) {$P_5^T$\\selected};
-\node[lvlT] (tp6) at (10.0,1.6) {$P_6^T$\\coarse};
-\node[lvlT] (tp7) at (10.0,0.0) {$P_7^T$\\coarse};
-\coordinate (tfan) at ($(tfpn.east)+(8mm,0)$);
-\draw[flow] (tfpn.east) -- (tfan) |- (tp3.west);
-\draw[flow] (tfpn.east) -- (tfan) |- (tp4.west);
-\draw[flow] (tfpn.east) -- (tfan) |- (tp5.west);
-\draw[flow] (tfpn.east) -- (tfan) |- (tp6.west);
-\draw[flow] (tfpn.east) -- (tfan) |- (tp7.west);
+\node[detloss] (det) at (4.6,1.4) {Detection loss\\$\mathcal{L}_{det}=\mathcal{L}_{cls}+\mathcal{L}_{box}$};
+\draw[flow] (heads.south) -- (det.north);
 
-\node[lvlS] (sp3) at (10.0,-0.8) {$P_3^S$\\fine};
-\node[lvlSel] (sp4) at (10.0,-2.4) {$P_4^S$\\selected};
-\node[lvlSel] (sp5) at (10.0,-4.0) {$P_5^S$\\selected};
-\node[lvlS] (sp6) at (10.0,-5.6) {$P_6^S$\\coarse};
-\node[lvlS] (sp7) at (10.0,-7.2) {$P_7^S$\\coarse};
-\coordinate (sfan) at ($(sfpn.east)+(8mm,0)$);
-\draw[flow] (sfpn.east) -- (sfan) |- (sp3.west);
-\draw[flow] (sfpn.east) -- (sfan) |- (sp4.west);
-\draw[flow] (sfpn.east) -- (sfan) |- (sp5.west);
-\draw[flow] (sfpn.east) -- (sfan) |- (sp6.west);
-\draw[flow] (sfpn.east) -- (sfan) |- (sp7.west);
+\node[loss, text width=46mm] (total) at (1.3,-6.8) {Final student objective\\$\mathcal{L}=\mathcal{L}_{det}+\lambda \mathcal{L}_{kd}$};
+\draw[flow] (kdterm.south) -- ++(0,-0.8) -| ([xshift=-2mm]total.north);
+\draw[flow] (det.south) -- ++(0,-0.9) -| ([xshift=2mm]total.north);
 
-\node[note] at (10.0,-10) {Only levels in $\mathcal{P}$ contribute to the hierarchical SSIM term};
+\node[note, text=red!75!black] at (1.3,-8.5) {Backpropagation updates the student only; the teacher remains frozen.};
 
-\node[proc] (align4) at (13.9,4.8) {Level alignment\\resize if needed};
-\node[proc] (align5) at (13.9,1.6) {Level alignment\\resize if needed};
-\draw[flow] (tp4.east) -- (align4.west);
-\draw[flow] (sp4.east) -- ++(7mm,0) |- ($(align4.south west)+(0,1mm)$);
-\draw[flow] (tp5.east) -- ++(7mm,0) |- ($(align5.north west)+(0,-1mm)$);
-\draw[flow] (sp5.east) -- (align5.west);
-
-\node[proc] (norm4) at (17.7,4.8) {Channel normalization\\$\hat{F}^{(l)}$};
-\node[proc] (norm5) at (17.7,1.6) {Channel normalization\\$\hat{F}^{(l)}$};
-\draw[flow] (align4.east) -- (norm4.west);
-\draw[flow] (align5.east) -- (norm5.west);
-
-\node[proc] (avg4) at (21.3,4.8) {Channel average\\$A_t^{(l)}, A_s^{(l)}$};
-\node[proc] (avg5) at (21.3,1.6) {Channel average\\$A_t^{(l)}, A_s^{(l)}$};
-\draw[flow] (norm4.east) -- (avg4.west);
-\draw[flow] (norm5.east) -- (avg5.west);
-
-\node[stat] (ssimblk4) at (27.0,4.8) {SSIM block at level $l=4$\\[1mm]};
-\node[loss] (pool4) at (31.8,4.8) {spatial average\\$\bar{\mathrm{SSIM}}_4$};
-\node[loss] (lvl4) at (36.0,4.8) {level loss\\$\alpha_4(1-\bar{\mathrm{SSIM}}_4)$};
-\draw[flow] (avg4.east) -- (ssimblk4.west);
-\draw[flow] (ssimblk4.east) -- (pool4.west);
-\draw[flow] (pool4.east) -- (lvl4.west);
-
-\node[stat] (ssimblk5) at (27.0,1.6) {SSIM block at level $l=5$\\[1mm]};
-\node[loss] (pool5) at (31.8,1.6) {spatial average\\$\bar{\mathrm{SSIM}}_5$};
-\node[loss] (lvl5) at (36.0,1.6) {level loss\\$\alpha_5(1-\bar{\mathrm{SSIM}}_5)$};
-\draw[flow] (avg5.east) -- (ssimblk5.west);
-\draw[flow] (ssimblk5.east) -- (pool5.west);
-\draw[flow] (pool5.east) -- (lvl5.west);
-
-\node[summ] (etc) at (36.0,-1.3) {$\cdots$ additional selected\\levels $l \in \mathcal{P}$};
-\node[loss] (sum) at (41.4,3.0) {Hierarchical KD term\\$\mathcal{L}_{kd}=\sum_{l\in\mathcal{P}}\alpha_l(1-\bar{\mathrm{SSIM}}_l)$};
-\draw[flow] (lvl4.east) -- ++(10mm,0) |- ([yshift=2mm]sum.west);
-\draw[flow] (lvl5.east) -- ++(10mm,0) |- ([yshift=-2mm]sum.west);
-\draw[flow] (etc.east) -- ++(10mm,0) |- (sum.south west);
-
-\node[detloss] (det) at (41.4,-3.8) {Detection loss block\\$\mathcal{L}_{det}=\mathcal{L}_{cls}+\mathcal{L}_{box}$};
-\node[loss] (total) at (41.4,-7.2) {Final student objective\\$\mathcal{L}=\mathcal{L}_{det}+\lambda \mathcal{L}_{kd}$};
-\draw[flow] (sum.south) -- (total.north);
-\draw[flow] (det.south) -- (total.north east);
-\draw[flow] (head.east) -- ++(14mm,0) |- (det.west);
-
-\draw[->, dashed, red!80!black, line width=0.95pt, rounded corners=3pt] (total.west) -- ++(-12mm,0) |- ([xshift=2mm]head.east);
-\draw[->, dashed, red!80!black, line width=0.95pt, rounded corners=3pt] ([xshift=-2mm]head.west) -- ++(-10mm,0) |- ([xshift=2mm]sfpn.east);
-\draw[->, dashed, red!80!black, line width=0.95pt, rounded corners=3pt] (sum.west) -- ++(-12mm,0) |- ([xshift=2mm]sp4.east);
-\draw[->, dashed, red!80!black, line width=0.95pt, rounded corners=3pt] (sum.west) -- ++(-12mm,0) |- ([xshift=2mm]sp5.east);
-\node[note, text=red!75!black] at (38.2,-10) {Dashed red arrows indicate gradient flow through the student branch only.};
-\node[note, text=blue!75!black] at (38.0,-11) {No gradient is propagated through the frozen teacher pathway.};
-
-\end{tikzpicture}%
-}
+\end{tikzpicture}
 \caption{Schematic of the proposed FPN-based hierarchical SSIM distillation pipeline. Teacher and student first construct aligned RetinaNet pyramid features, selected FPN levels are matched, normalized, reduced to response maps, and compared through local SSIM statistics before level-wise weighted aggregation into the final knowledge-distillation term \cite{lin2017fpn,wang2004ssim,wang2003msssim,derijk2022structural}.}
 \label{fig:method-fpn-ssim}
 \end{figure}
